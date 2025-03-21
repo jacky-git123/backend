@@ -1,0 +1,165 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto, uuid_ossp(map: "uuid-ossp", schema: "public")]
+}
+
+model city {
+  id       String @id(map: "city_pk") @default(uuid()) @db.Uuid
+  name     String @db.VarChar(255)
+  state_id String @db.Uuid
+  state    state  @relation(fields: [state_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "city_state_fk")
+}
+
+model country {
+  id     String  @id(map: "country_pk") @default(uuid()) @db.Uuid
+  name   String  @db.VarChar(255)
+  states state[]
+}
+
+model customer {
+  id               String     @id(map: "customer_pk") @default(uuid()) @db.Uuid
+  email            String?    @db.VarChar(255)
+  generate_id      String?    @db.VarChar
+  gender           String?    @db.VarChar(255)
+  ic               String?    @db.VarChar(255) @unique
+  name             String?    @db.VarChar(255)
+  passport         String?    @db.VarChar(255) @unique
+  race             String?    @db.VarChar(255)
+  deleted_at       DateTime?
+  bank_details     Json?
+  created_by       String?    @db.Uuid
+  customer_address Json?
+  employment       Json?
+  relations        Json?
+  supervisor       String?    @db.Uuid
+  car_plate        String?    @db.VarChar(255)
+  marital_status   String?    @db.VarChar(255)
+  mobile_no        String?    @db.VarChar(255)
+  no_of_child      Int?
+  tel_code         String?    @db.VarChar(255)
+  tel_no           String?    @db.VarChar(255)
+  status           String?    @db.VarChar(255)
+  remarks          Json?
+  document         document[]
+  loan             loan[]
+}
+
+model document {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @db.VarChar(255)
+  path        String    @db.VarChar(255)
+  size        String    @db.VarChar(255)
+  description String    @db.VarChar(255)
+  customer_id String?   @db.Uuid
+  customer    customer? @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "document_customer-id_fkey")
+}
+
+model installment {
+  id               String    @id(map: "installment_pk") @default(uuid()) @db.Uuid
+  generate_id      String?   @db.VarChar
+  installment_date String?   @db.VarChar
+  due_amount       String?   @db.VarChar
+  receiving_date   String?   @db.VarChar
+  status           String?   @db.VarChar
+  loan_id          String?   @db.Uuid
+  accepted_amount  String?   @db.VarChar
+  loan             loan?     @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "installment_loan_fk")
+  payment          payment[]
+}
+
+model loan {
+  id               String        @id(map: "loan_pk") @default(uuid()) @db.Uuid
+  customer_id      String?       @db.Uuid
+  repayment_date   String?       @db.VarChar
+  principal_amount String?       @db.VarChar
+  deposit_amount   String?       @db.VarChar
+  application_fee  String?       @db.VarChar
+  interest         String?       @db.VarChar
+  remark           String?       @db.VarChar
+  created_by       String?       @db.Uuid
+  supervisor       String?       @db.Uuid
+  supervisor_2     String?       @db.Uuid // Added second supervisor field
+  date_period      String?       @db.VarChar
+  loan_remark      String?       @db.VarChar
+  unit_of_date     String?       @db.VarChar
+  generate_id      String        @db.VarChar
+  repayment_term   String?       @db.VarChar
+  status           String?       @db.VarChar
+  amount_given     String?       @db.VarChar
+  interest_amount  String?       @db.VarChar
+  payment_per_term String?       @db.VarChar
+  installment      installment[]
+  customer         customer?     @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_customer_fk")
+  user             user?         @relation(name: "supervisor1", fields: [supervisor], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_user_fk")
+  user_2           user?         @relation(name: "supervisor2", fields: [supervisor_2], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_user_fk_2")
+  loan_share       loan_share[]
+  payment          payment[]
+}
+
+model loan_share {
+  id      String  @id(map: "loan_share_pk") @default(uuid()) @db.Uuid
+  loan_id String? @db.Uuid
+  loan    loan?   @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_share_loan_fk")
+}
+
+model payment {
+  generate_id     String?   @db.VarChar
+  id              String       @id(map: "payment_pk") @default(uuid()) @db.Uuid
+  type            String?      @db.VarChar
+  installment_id  String?      @db.Uuid
+  payment_date    String?      @db.VarChar
+  amount          String?      @db.VarChar
+  balance         String?      @db.VarChar
+  account_details String?      @db.VarChar
+  loan_id         String?      @db.Uuid
+  installment     installment? @relation(fields: [installment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_installment_fk")
+  loan            loan?        @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_loan_fk")
+}
+
+model state {
+  id         String  @id(map: "state_pk") @default(uuid()) @db.Uuid
+  name       String  @db.VarChar(255)
+  country_id String  @db.Uuid
+  cities     city[]
+  country    country @relation(fields: [country_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "state_country_fk")
+}
+
+model user {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @unique @db.VarChar(255)
+  password   String?  @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  role       Role?    @default(AGENT)
+  supervisor String?  @db.Uuid
+  name       String?  @db.VarChar(255)
+  status     Boolean? @default(true)
+  generate_id      String?   @db.VarChar
+
+  // Relations: Loans where this user is a supervisor
+  supervised_loans_1 loan[] @relation(name: "supervisor1") // Primary supervisor
+  supervised_loans_2 loan[] @relation(name: "supervisor2") // Secondary supervisor
+}
+
+
+enum Role {
+  ADMIN
+  LEAD
+  AGENT
+  SUPER_ADMIN
+}
+
+
+model Tracker {
+  id         Int    @id @default(autoincrement()) // Primary Key
+  category   String // 'loan', 'customer', 'user', etc.
+  year       Int    // Year of tracking
+  lastNumber Int    // Last used running number for the given category, year, and month
+  @@unique([category, year]) // Ensure one record per category, year, and month
+}
+
