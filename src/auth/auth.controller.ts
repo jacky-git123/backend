@@ -16,7 +16,7 @@ constructor(private authService: AuthService) {}
   }
 
   @UseGuards(AuthGuard)
-  @Put('change-password')
+  @Post('change-password')
   async changePassword(@Headers() headers, @Body() changePasswordDto: ChangePasswordDto) {
     await this.authService.changePassword(headers.auth_user.sub, changePasswordDto);
     return { message: 'Password changed successfully' };
