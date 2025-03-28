@@ -9,12 +9,12 @@ import { AuthGuard } from 'src/auth/auth.guard';
 export class CustomerController {
     constructor(private readonly customerService: CustomerService) {}
 
-  @UseGuards(AuthGuard)
+  // @UseGuards(AuthGuard)
   @Post()
   async create(@Body() createCustomerDto: CreateCustomerDto, @Headers() headers: any) {
     console.log(headers);
     if (headers.auth_user) {
-      createCustomerDto.created_by = headers.auth_user.sub;
+      createCustomerDto.created_by = headers.user_id;
     }
     return this.customerService.create(createCustomerDto);
   }
