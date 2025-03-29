@@ -8,6 +8,7 @@ async function bootstrap() {
     origin: '*', // Replace with your frontend URL in production
     allowedHeaders: ['*'], // Allows all headers
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true
   });
 
   const config = new DocumentBuilder()
