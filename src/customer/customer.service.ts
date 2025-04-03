@@ -262,6 +262,14 @@ export class CustomerService {
         }
       });
       loan.supervisorObj = supervisor;
+      if (loan.supervisor_2) {
+        const supervisor_2 = await this.prisma.user.findUnique({
+          where: {
+            id: loan.supervisor_2
+          }
+        });
+        loan.supervisor_2Obj = supervisor_2;
+      }
     }));
     return loanStatusCounts;
   }
