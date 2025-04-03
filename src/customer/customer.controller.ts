@@ -11,10 +11,12 @@ export class CustomerController {
 
   // @UseGuards(AuthGuard)
   @Post()
-  async create(@Body() createCustomerDto: CreateCustomerDto, @Headers() headers: any) {
+  async create(@Body() createCustomerDto: CreateCustomerDto, @Headers() headers: any, @Query('userid') userId: string) {
     console.log(headers);
     if (headers.auth_user) {
       createCustomerDto.created_by = headers.user_id;
+    }else {
+      createCustomerDto.created_by = userId;
     }
     return this.customerService.create(createCustomerDto);
   }
