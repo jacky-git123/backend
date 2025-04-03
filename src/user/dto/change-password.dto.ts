@@ -9,4 +9,6 @@ export class ChangePasswordDto {
   @IsString()
   @MinLength(8)
   newPassword: string;
+
+  userid: string;
 }
