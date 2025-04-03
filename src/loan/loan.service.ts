@@ -66,6 +66,7 @@ export class LoanService {
         installment: true,
         loan_share: true,
         user: true,
+        user_2: true,
       },
     });
   }
