@@ -92,6 +92,38 @@ export class CustomerService {
       }),
     ]);
 
+    await Promise.all(customers.map(async (customer:any) => {
+      const onGoingStatusCounts = await this.prisma.loan.count({
+        where: {
+          status: 'Completed',
+          customer_id: customer.id,
+        }
+      });
+      const normalStatusCounts = await this.prisma.loan.count({
+        where: {
+          status: 'Normal',
+          customer_id: customer.id,
+        }
+      });
+      const badDebtStatusCounts = await this.prisma.loan.count({
+        where: {
+          status: 'Bad Debt',
+          customer_id: customer.id,
+        }
+      });
+      const badDebtCompletedStatusCounts = await this.prisma.loan.count({
+        where: {
+          status: 'Bad Debt Completed',
+          customer_id: customer.id,
+        }
+      });
+      customer.onGoingStatusCounts = onGoingStatusCounts;
+      customer.normalStatusCounts = normalStatusCounts;
+      customer.badDebtStatusCounts = badDebtStatusCounts;
+      customer.badDebtCompletedStatusCounts = badDebtCompletedStatusCounts;
+
+    }))
+
     return {
       data: customers,
       total,
