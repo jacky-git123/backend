@@ -9,6 +9,7 @@ export class UserController {
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
+    delete createUserDto.userid;
     return this.userService.createUser(createUserDto);
   }
 
