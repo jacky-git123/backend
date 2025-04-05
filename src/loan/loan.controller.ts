@@ -35,6 +35,7 @@ export class LoanController {
   
   @Put('installment/:id')
   updateInstallment(@Param('id') id: string, @Body() updateInstallment: any) {
+    delete updateInstallment.userid;
     return this.loanService.updateInstallment(id, updateInstallment);
   }
 
