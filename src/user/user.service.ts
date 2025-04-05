@@ -24,6 +24,8 @@ export class UserService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    delete updateUserDto.password;
+    delete updateUserDto.userid;
     return this.prisma.user.update({ where: { id }, data: updateUserDto });
   }
 
