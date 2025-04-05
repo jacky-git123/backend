@@ -164,16 +164,18 @@ export class LoanService {
     if (installments.length > 0) {
       await Promise.all(
         installments.map(async (installment) => {
+          console.log(installment, 'installments');
           await this.prisma.installment.update({
             where: { id: installment.id },
             data: installment,
           });
         }),
       );
+      return this.prisma.loan.findFirst({
+        where: { generate_id: id },
+      });
     }
-    return this.prisma.loan.findFirst({
-      where: { generate_id: id },
-    });
+    return {}
   }
 
   async delete(id: string) {
