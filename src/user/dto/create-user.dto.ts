@@ -31,4 +31,6 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   status?: string;
+
+  userid?:string;
 }
