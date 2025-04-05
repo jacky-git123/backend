@@ -12,7 +12,7 @@ export class CustomerService {
     ) {}
 
   async create(data: any) {
-
+    delete data.userid;
     if (data.ic && !data.id) {
       const checkIC = await this.prisma.customer.findFirst({
         where: {
