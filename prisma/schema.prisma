@@ -48,6 +48,7 @@ model customer {
   remarks          Json?
   document         document[]
   loan             loan[]
+  created_at       DateTime @default(now()) @db.Timestamp(6)
 }
 
 model document {
@@ -71,6 +72,7 @@ model installment {
   accepted_amount  String?   @db.VarChar
   loan             loan?     @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "installment_loan_fk")
   payment          payment[]
+  created_at       DateTime @default(now()) @db.Timestamp(6)
 }
 
 model loan {
@@ -100,6 +102,7 @@ model loan {
   user_2           user?         @relation(name: "supervisor2", fields: [supervisor_2], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_user_fk_2")
   loan_share       loan_share[]
   payment          payment[]
+  created_at       DateTime @default(now()) @db.Timestamp(6)
 }
 
 model loan_share {
@@ -118,6 +121,7 @@ model payment {
   balance         String?      @db.VarChar
   account_details String?      @db.VarChar
   loan_id         String?      @db.Uuid
+  created_at      DateTime @default(now()) @db.Timestamp(6)
   installment     installment? @relation(fields: [installment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_installment_fk")
   loan            loan?        @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_loan_fk")
 }

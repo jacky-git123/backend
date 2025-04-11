@@ -13,6 +13,9 @@ export class PaymentService {
 
   async create(createPaymentDto: any) {
     const createdPayments = [];
+    createPaymentDto = Object.entries(createPaymentDto)
+    .filter(([key]) => !isNaN(Number(key))) // Only numeric keys
+    .map(([, value]) => value);
     for (let i = 0; i < createPaymentDto.length; i++) {
       const generate_id = await this.utilService.generateUniqueNumber('PM');
       const payment = createPaymentDto[i];

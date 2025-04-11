@@ -298,7 +298,7 @@ export class LoanService {
   async getLoanStatusByPassport(id: any) {
     const getUserDetails = await this.prisma.customer.findFirst({
       where: {
-        OR: [{ ic: id }, { passport: id }],
+        OR: [{ ic: id }, { passport: id },{ name: { contains: id, mode: 'insensitive' } }],
       },
     });
     console.log(getUserDetails);
@@ -309,6 +309,7 @@ export class LoanService {
           installment: true,
           loan_share: true,
           user: true,
+          customer:true
         },
       });
       return loanData
