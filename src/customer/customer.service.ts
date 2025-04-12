@@ -123,7 +123,9 @@ export class CustomerService {
       customer.badDebtCompletedStatusCounts = badDebtCompletedStatusCounts;
 
     }))
-
+    // console.log('customerscustomerscustomerscustomerscustomers');
+    // console.log(customers);
+    // console.log('customerscustomerscustomerscustomerscustomerscustomers');
     return {
       data: customers,
       total,
