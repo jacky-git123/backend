@@ -40,35 +40,61 @@ export class LoanService {
     });
   }
 
-  async findAll(page: number, limit: number, filter: any) {
-    // if (page < 1) {
-    //   page = 1;
-    // }
-    // const skip = (page - 1) * limit;
-
-    // const loans = await this.prisma.loan.findMany({
-    //   skip,
-    //   take: limit,
-    //   include: { customer: true, installment: true, loan_share: true },
-    // });
-
-    // const totalCount = await this.prisma.loan.count();
-
-    // return {
-    //   data: loans,
-    //   totalPages: Math.ceil(totalCount / limit),
-    //   currentPage: page,
-    //   limit,
-    // };
-    return this.prisma.loan.findMany({
+  async findAll(page: number, limit: number, filter?: string) {
+    // Define the base query parameters
+    const queryParams: any = {
+      skip: page,
+      take: limit,
       include: {
         customer: true,
         installment: true,
         loan_share: true,
         user: true,
         user_2: true,
-      },
-    });
+      }
+    };
+  
+    // Only add where clause if filter is provided and not empty
+    if (filter && filter.trim() !== '') {
+      queryParams.where = {
+        OR: [
+          // Search by loan's generate_id
+          { generate_id: { contains: filter, mode: 'insensitive' } },
+          // Search by customer's generate_id, name, ic, or passport
+          {
+            customer: {
+              OR: [
+                { generate_id: { contains: filter, mode: 'insensitive' } },
+                { name: { contains: filter, mode: 'insensitive' } },
+                { ic: { contains: filter, mode: 'insensitive' } },
+                { passport: { contains: filter, mode: 'insensitive' } }
+              ]
+            }
+          },
+          // Search by user's name or generate_id (supervisor 1)
+          {
+            user: {
+              OR: [
+                { name: { contains: filter, mode: 'insensitive' } },
+                { generate_id: { contains: filter, mode: 'insensitive' } }
+              ]
+            }
+          },
+          // Search by user's name or generate_id (supervisor 2)
+          {
+            user_2: {
+              OR: [
+                { name: { contains: filter, mode: 'insensitive' } },
+                { generate_id: { contains: filter, mode: 'insensitive' } }
+              ]
+            }
+          }
+        ]
+      };
+    }
+  
+    // Execute the query with the constructed parameters
+    return this.prisma.loan.findMany(queryParams);
   }
 
   async create(createLoanDto) {
