@@ -187,6 +187,7 @@ export class LoanService {
     delete updateLoanDto.customer_id;
     delete updateLoanDto.userid;
     updateLoanDto.payment_per_term = updateLoanDto.payment_per_term?.toString();
+    updateLoanDto.interest_amount = updateLoanDto.interest_amount?.toString();
     return this.prisma.loan.update({
       where: { id },
       data: updateLoanDto,
