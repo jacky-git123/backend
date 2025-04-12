@@ -180,6 +180,12 @@ export class LoanService {
         }),
       );
     }
+    // const user = updateLoanDto.supervisor;
+    // const user_2 = updateLoanDto.supervisor_2;
+    delete updateLoanDto.supervisor;
+    delete updateLoanDto.supervisor_2;
+    delete updateLoanDto.customer_id;
+    delete updateLoanDto.userid;
     return this.prisma.loan.update({
       where: { id },
       data: updateLoanDto,
