@@ -48,7 +48,7 @@ model customer {
   remarks          Json?
 
   created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
 
   document         document[]
   loan             loan[]
@@ -63,7 +63,7 @@ model document {
   customer_id String?   @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
 
   customer    customer? @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "document_customer-id_fkey")
 }
@@ -79,7 +79,7 @@ model installment {
   accepted_amount  String?   @db.VarChar
 
   created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
 
   loan             loan?     @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "installment_loan_fk")
   payment          payment[]
@@ -109,7 +109,7 @@ model loan {
   installment      installment[]
 
   created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
 
   customer         customer?     @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_customer_fk")
   user             user?         @relation(name: "supervisor1", fields: [supervisor], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_user_fk")
@@ -123,7 +123,7 @@ model loan_share {
   loan_id String? @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
 
   loan    loan?   @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_share_loan_fk")
 }
@@ -140,7 +140,7 @@ model payment {
   loan_id         String?      @db.Uuid
   
   created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
 
   installment     installment? @relation(fields: [installment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_installment_fk")
   loan            loan?        @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_loan_fk")
@@ -159,7 +159,7 @@ model user {
   email      String   @unique @db.VarChar(255)
   password   String?  @db.VarChar(255)
   created_at DateTime @default(now()) @db.Timestamp(6)
-  updated_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
   role       Role?    @default(AGENT)
   supervisor String?  @db.Uuid
   name       String?  @db.VarChar(255)
