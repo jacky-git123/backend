@@ -12,7 +12,11 @@ export class UserService {
   ) {}
 
   async findAll() {
-    return this.prisma.user.findMany();
+    return this.prisma.user.findMany({
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
   }
 
   async findOne(id: string): Promise<any> {
