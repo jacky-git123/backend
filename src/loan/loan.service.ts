@@ -46,6 +46,9 @@ export class LoanService {
     const queryParams: any = {
       skip,
       take: limit,
+      orderBy: {
+        created_at: 'desc' // Add sorting by created_at in descending order
+      },
       include: {
         customer: true,
         installment: {

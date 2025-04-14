@@ -86,6 +86,9 @@ export class CustomerService {
         skip,
         take,
         where,
+        orderBy: {
+          created_at: 'desc' // Add sorting by created_at in descending order
+        },
       }),
       this.prisma.customer.count({
         where,
