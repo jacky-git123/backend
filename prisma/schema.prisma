@@ -83,6 +83,8 @@ model installment {
 
   loan             loan?     @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "installment_loan_fk")
   payment          payment[]
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  deleted          Boolean? @default(false)
 }
 
 model loan {
@@ -116,10 +118,13 @@ model loan {
   user_2           user?         @relation(name: "supervisor2", fields: [supervisor_2], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "loan_user_fk_2")
   loan_share       loan_share[]
   payment          payment[]
+  created_at       DateTime @default(now()) @db.Timestamp(6)
+  deleted          Boolean? @default(false)
 }
 
 model loan_share {
   id      String  @id(map: "loan_share_pk") @default(uuid()) @db.Uuid
+  deleted Boolean? @default(false)
   loan_id String? @db.Uuid
 
   created_at DateTime @default(now()) @db.Timestamp(6)

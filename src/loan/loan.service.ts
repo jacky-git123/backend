@@ -47,13 +47,16 @@ export class LoanService {
       take: limit,
       include: {
         customer: true,
-        installment: true,
-        loan_share: true,
+        installment: {
+          where: { deleted: false },
+        },
+        loan_share: {
+          where: { deleted: false },
+        },
         user: true,
         user_2: true,
       }
     };
-  
     // Only add where clause if filter is provided and not empty
     if (filter && filter.trim() !== '') {
       queryParams.where = {
@@ -212,15 +215,32 @@ export class LoanService {
     return {}
   }
 
+  // async delete(id: string) {
+  //   const deleteInstallment = await this.prisma.installment.deleteMany({
+  //     where: { loan_id: id },
+  //   });
+  //   const loadShare = await this.prisma.loan_share.deleteMany({
+  //     where: { loan_id: id },
+  //   });
+  //   return this.prisma.loan.delete({
+  //     where: { id },
+  //   });
+  // }
+
   async delete(id: string) {
-    const deleteInstallment = await this.prisma.installment.deleteMany({
+    const deleteInstallment = await this.prisma.installment.updateMany({
       where: { loan_id: id },
+      data: { deleted: true },
     });
-    const loadShare = await this.prisma.loan_share.deleteMany({
+  
+    const loadShare = await this.prisma.loan_share.updateMany({
       where: { loan_id: id },
+      data: { deleted: true },
     });
-    return this.prisma.loan.delete({
+  
+    return this.prisma.loan.update({
       where: { id },
+      data: { deleted: true },
     });
   }
 
