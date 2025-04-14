@@ -41,9 +41,10 @@ export class LoanService {
   }
 
   async findAll(page: number, limit: number, filter?: string) {
+    const skip = (page - 1) * limit;
     // Define the base query parameters
     const queryParams: any = {
-      skip: page,
+      skip,
       take: limit,
       include: {
         customer: true,
