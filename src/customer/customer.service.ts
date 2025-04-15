@@ -263,7 +263,7 @@ export class CustomerService {
   }
 
   async getCustomerStatus(key: string) {
-    const customers = await this.prisma.customer.findMany({
+    const customer = await this.prisma.customer.findFirst({
       where: pickBy({
         OR: [
           {
@@ -281,49 +281,34 @@ export class CustomerService {
         ]
       }),
     });
-  
-    // Use Promise.all to wait for all customer loan status processing
-    const allLoanStatusCounts = await Promise.all(customers.map(async (customer) => {
-      // Find Loans for each customer
-      const loanStatusCounts = await this.prisma.loan.groupBy({
-        by: ['status', 'supervisor'],
+    // Find Load
+    const loanStatusCounts = await this.prisma.loan.groupBy({
+      by: ['status', 'supervisor'],
+      where: {
+        customer_id: customer.id,
+      },
+      _count: {
+        status: true,
+        supervisor: true,
+      },
+    });
+    await Promise.all(loanStatusCounts.map(async (loan: any) => {
+      const supervisor = await this.prisma.user.findUnique({
         where: {
-          customer_id: customer.id,
-        },
-        _count: {
-          status: true,
-          supervisor: true,
-        },
+          id: loan.supervisor
+        }
       });
-  
-      // Process each loan status count
-      await Promise.all(loanStatusCounts.map(async (loan: any) => {
-        const supervisor = await this.prisma.user.findUnique({
+      loan.supervisorObj = supervisor;
+      if (loan.supervisor_2) {
+        const supervisor_2 = await this.prisma.user.findUnique({
           where: {
-            id: loan.supervisor
+            id: loan.supervisor_2
           }
         });
-        loan.supervisorObj = supervisor;
-        
-        if (loan.supervisor_2) {
-          const supervisor_2 = await this.prisma.user.findUnique({
-            where: {
-              id: loan.supervisor_2
-            }
-          });
-          loan.supervisor_2Obj = supervisor_2;
-        }
-        
-        return loan; // Return the modified loan object
-      }));
-      
-      return {
-        customer,
-        loanStatusCounts
-      };
+        loan.supervisor_2Obj = supervisor_2;
+      }
     }));
-    
-    return allLoanStatusCounts;
+    return loanStatusCounts;
   }
   
 }
