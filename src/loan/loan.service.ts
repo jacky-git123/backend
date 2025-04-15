@@ -353,26 +353,41 @@ export class LoanService {
     return dates;
   }
 
-  async getLoanStatusByPassport(id: any) {
-    const getUserDetails = await this.prisma.customer.findFirst({
-      where: {
-        OR: [{ ic: id }, { passport: id },{ name: { contains: id, mode: 'insensitive' } }],
-      },
-    });
-    console.log(getUserDetails);
-    if(getUserDetails){
-      const loanData = this.prisma.loan.findMany({
-        where: { customer_id: getUserDetails.id },
+  async getLoanStatusByPassport(id: string) {
+    try {
+      // Find all matching customers (not just first)
+      const customers = await this.prisma.customer.findMany({
+        where: {
+          OR: [
+            { ic: id },
+            { passport: id },
+            { name: { contains: id, mode: 'insensitive' } }
+          ],
+        },
+      });
+  
+      if (!customers.length) {
+        return [];
+      }
+  
+      // Get all loans for all matching customers
+      const customerIds = customers.map(c => c.id);
+      const loans = await this.prisma.loan.findMany({
+        where: { 
+          customer_id: { in: customerIds } 
+        },
         include: {
           installment: true,
           loan_share: true,
           user: true,
-          customer:true
+          customer: true
         },
       });
-      return loanData
+  
+      return loans;
+    } catch (error) {
+      console.error('Error fetching loan status:', error);
+      return [];
     }
-    
-    return []
   }
 }

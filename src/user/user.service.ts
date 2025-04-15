@@ -19,6 +19,15 @@ export class UserService {
     });
   }
 
+  async findAllLeads() {
+    return this.prisma.user.findMany({
+      where:{'role':'LEAD'},
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+  }
+
   async findOne(id: string): Promise<any> {
     return this.prisma.user.findUnique({
       where: {

@@ -18,6 +18,11 @@ export class UserController {
     return this.userService.findAll();
   }
 
+  @Get('getLeads')
+  async findLeads() {
+    return this.userService.findAllLeads();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
