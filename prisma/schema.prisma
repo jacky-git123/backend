@@ -106,6 +106,8 @@ model loan {
   repayment_term   String?       @db.VarChar
   status           String?       @db.VarChar
   amount_given     String?       @db.VarChar
+  actual_profit    String?       @db.VarChar
+  estimated_profit String?       @db.VarChar
   interest_amount  String?       @db.VarChar
   payment_per_term String?       @db.VarChar
   installment      installment[]

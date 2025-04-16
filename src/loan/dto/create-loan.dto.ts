@@ -9,6 +9,8 @@ export class CreateLoanDto {
     amount_given?:string;
     interest_amount?:string;
     payment_per_term?:string;
+    actual_profit?:string;
+    estimated_profit?:string;
     remark: string;
     created_by: string;
     supervisor: string;

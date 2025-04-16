@@ -133,6 +133,8 @@ export class LoanService {
         amount_given: createLoanDto.amount_given?.toString(),
         interest_amount: createLoanDto.interest_amount?.toString(),
         payment_per_term: createLoanDto.payment_per_term?.toString(),
+        actual_profit: createLoanDto.actual_profit?.toString(),
+        estimated_profit: createLoanDto.estimated_profit?.toString(),
       },
     });
 
