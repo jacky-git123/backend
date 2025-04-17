@@ -32,6 +32,7 @@ export class LoanService {
       include: {
         customer: true,
         installment: true,
+        payment:true,
         loan_share: true,
         user: true,
         user_2: true,
