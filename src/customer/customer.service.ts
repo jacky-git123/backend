@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { CreateCustomerDto, UpdateCustomerDto } from './customer.dto';
 import { pickBy } from 'lodash';
-import { count } from 'console';
 import { RunningNumberGenerator } from 'src/common/utils';
 
 @Injectable()
@@ -47,10 +46,37 @@ export class CustomerService {
     }
   }
 
-  async findAll(skip: number, take: number, filter: any) {
-    let where = {
-      deleted_at: null
+  async findAll(skip: number, take: number, filter: any, authUserId: any) {
+    if (!authUserId) return;
+
+    const authUser = await this.prisma.user.findFirst({
+      where: {
+        id: authUserId,
+      }
+    });
+    let getSupervisor;
+    if (authUser.supervisor) {
+      getSupervisor = await this.prisma.user.findFirst({
+        where: { id: authUser.supervisor }
+      });
     }
+
+    // let orClauses = [];
+    // orClauses.push({ created_by: authUserId })
+    // if (getSupervisor) {
+    //   orClauses = [
+    //     { supervisor: getSupervisor.id },
+    //     { supervisor_2: getSupervisor.id },
+    //     { created_by: getSupervisor.id },
+    //   ];
+    // }
+
+    let where = {
+      deleted_at: null,
+      // OR: orClauses
+    }
+    console.log('where');
+    console.log(where);
     if (filter) {
       where = pickBy({
         OR: [
@@ -135,6 +161,22 @@ export class CustomerService {
       skip,
       take,
     };
+  }
+
+  customPickBy(array) {
+    // First, filter out objects with undefined values
+    const filteredArray = array.filter(item => {
+      // Get the first key of the object
+      const key = Object.keys(item)[0];
+      // Keep only items where the value is defined
+      return item[key] !== undefined;
+    });
+    
+    // Convert filtered array to object with numeric keys
+    return filteredArray.reduce((acc, item, index) => {
+      acc[index] = item;
+      return acc;
+    }, {});
   }
 
   async findOne(id: string) {

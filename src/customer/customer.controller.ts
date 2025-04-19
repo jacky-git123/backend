@@ -23,11 +23,15 @@ export class CustomerController {
 
   @Get()
   async findAll(
-    @Query('skip') skip: number = 0,
-    @Query('take') take: number = 10,
-    @Query('filter') filter: any
+    @Query('page') page: number = 0,
+    @Query('limit') limit: number = 10,
+    @Query('filter') filter: any,
+    @Query('userid') userid: any,
   ) {
-    return this.customerService.findAll(Number(skip), Number(take), filter);
+    const authUserId = userid;
+
+    const skip = (page) * limit;
+    return this.customerService.findAll(Number(skip), Number(limit), filter, authUserId);
   }
 
   @Get(':id')
