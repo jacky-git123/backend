@@ -48,37 +48,45 @@ export class CustomerService {
 
   async findAll(skip: number, take: number, filter: any, authUserId: any) {
     if (!authUserId) return;
-
+  
     const authUser = await this.prisma.user.findFirst({
       where: {
         id: authUserId,
       }
     });
-    let getSupervisor;
-    if (authUser.supervisor) {
-      getSupervisor = await this.prisma.user.findFirst({
-        where: { id: authUser.supervisor }
-      });
-    }
-
-    // let orClauses = [];
-    // orClauses.push({ created_by: authUserId })
-    // if (getSupervisor) {
-    //   orClauses = [
-    //     { supervisor: getSupervisor.id },
-    //     { supervisor_2: getSupervisor.id },
-    //     { created_by: getSupervisor.id },
-    //   ];
-    // }
-
-    let where = {
+  
+    // Initialize where clause with deleted_at: null
+    let where: any = {
       deleted_at: null,
-      // OR: orClauses
+    };
+  
+    // If user has a supervisor, we need to query customers with that supervisor in leadUser array
+    if (authUser.supervisor) {
+      // Using raw filter for leadUser JSON array
+      where = {
+        ...where,
+        // This raw query handles the array structure of leadUser where lead1 could be in any position
+        AND: [
+          {
+            OR: [
+              { created_by: authUserId },
+              // Use raw filtering for leadUser array
+              { 
+                leadUser: {
+                  path: ['$[*].lead1'],
+                  array_contains: authUser.supervisor
+                }
+              }
+            ]
+          }
+        ]
+      };
     }
-    console.log('where');
-    console.log(where);
+    
+    // Add text search filters if provided
     if (filter) {
       where = pickBy({
+        ...where,
         OR: [
           {
             name: {
@@ -107,20 +115,72 @@ export class CustomerService {
         ]
       });
     }
-    const [customers, total] = await Promise.all([
-      this.prisma.customer.findMany({
-        skip,
-        take,
-        where,
-        orderBy: {
-          created_at: 'desc' // Add sorting by created_at in descending order
-        },
-      }),
-      this.prisma.customer.count({
-        where,
-      }),
-    ]);
-
+  
+    console.log('where');
+    console.log(where);
+    console.log('where');
+  
+    // If Prisma's JSON filtering isn't working for the array, use a raw query approach
+    let customers, total;
+    
+    if (authUser.supervisor) {
+      // Using raw query to handle the JSON array search properly
+      const rawQuery = `
+        SELECT * FROM "customer"
+        WHERE "deleted_at" IS NULL
+        AND EXISTS (
+          SELECT FROM jsonb_array_elements("leadUser") AS elem
+          WHERE elem->>'lead1' = '${authUser.supervisor}'
+        )
+        ${filter ? `AND (
+          LOWER("name") LIKE LOWER('%${filter}%') OR
+          LOWER("email") LIKE LOWER('%${filter}%') OR
+          LOWER("passport") LIKE LOWER('%${filter}%') OR
+          LOWER("ic") LIKE LOWER('%${filter}%')
+        )` : ''}
+        ORDER BY "created_at" DESC
+        LIMIT ${take} OFFSET ${skip}
+      `;
+  
+      const countQuery = `
+        SELECT COUNT(*) FROM "customer"
+        WHERE "deleted_at" IS NULL
+        AND EXISTS (
+          SELECT FROM jsonb_array_elements("leadUser") AS elem
+          WHERE elem->>'lead1' = '${authUser.supervisor}'
+        )
+        ${filter ? `AND (
+          LOWER("name") LIKE LOWER('%${filter}%') OR
+          LOWER("email") LIKE LOWER('%${filter}%') OR
+          LOWER("passport") LIKE LOWER('%${filter}%') OR
+          LOWER("ic") LIKE LOWER('%${filter}%')
+        )` : ''}
+      `;
+  
+      [customers, total] = await Promise.all([
+        this.prisma.$queryRawUnsafe(rawQuery),
+        this.prisma.$queryRawUnsafe(countQuery)
+      ]);
+      
+      total = Number(total[0].count);
+    } else {
+      // Use standard Prisma queries when no leadUser filtering is needed
+      [customers, total] = await Promise.all([
+        this.prisma.customer.findMany({
+          skip,
+          take,
+          where,
+          orderBy: {
+            created_at: 'desc'
+          },
+        }),
+        this.prisma.customer.count({
+          where,
+        }),
+      ]);
+    }
+  
+    // Enhance customer data with loan status counts
     await Promise.all(customers.map(async (customer:any) => {
       const onGoingStatusCounts = await this.prisma.loan.count({
         where: {
@@ -150,11 +210,8 @@ export class CustomerService {
       customer.normalStatusCounts = normalStatusCounts;
       customer.badDebtStatusCounts = badDebtStatusCounts;
       customer.badDebtCompletedStatusCounts = badDebtCompletedStatusCounts;
-
-    }))
-    // console.log('customerscustomerscustomerscustomerscustomers');
-    // console.log(customers);
-    // console.log('customerscustomerscustomerscustomerscustomerscustomers');
+    }));
+  
     return {
       data: customers,
       total,
@@ -162,7 +219,7 @@ export class CustomerService {
       take,
     };
   }
-
+  
   customPickBy(array) {
     // First, filter out objects with undefined values
     const filteredArray = array.filter(item => {
@@ -196,6 +253,8 @@ export class CustomerService {
 
   async update(id: string, data: any) {
     const { customer_relation, customer_address, company, bankDetails, ...customerData } = data;
+    data.created_by = data.userid;
+    delete data.userid;
     return this.prisma.customer.update({
       where: { id },
       data: data,
