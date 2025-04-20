@@ -28,7 +28,7 @@ export class LoanService {
   }
 
   async findOne(id: string) {
-    return this.prisma.loan.findFirst({
+    const loadData = await this.prisma.loan.findFirst({
       include: {
         customer: true,
         installment: true,
@@ -39,6 +39,10 @@ export class LoanService {
       },
       where: { generate_id: id },
     });
+    const getLeadUser = await this.prisma.user.findFirst({
+      where: { id: loadData.user.supervisor },
+    })
+    return {...loadData, getLeadUser}
   }
 
   async findAll(page: number, limit: number, filter?: string) {
