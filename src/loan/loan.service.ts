@@ -109,7 +109,11 @@ export class LoanService {
   
     // Execute the query with the constructed parameters
     const data = await this.prisma.loan.findMany(queryParams);
-    const total = await this.prisma.loan.count(queryParams);
+    const total = await this.prisma.loan.count({
+      where: {
+        deleted: false,
+      }
+    });
     return {
       data,
       total,
