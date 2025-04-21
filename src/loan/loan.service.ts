@@ -365,14 +365,14 @@ export class LoanService {
     return dates;
   }
 
-  async getLoanStatusByPassport(id: string) {
+  async getLoanStatusByPassport_old(id: string) {
     try {
       // Find all matching customers (not just first)
       const customers = await this.prisma.customer.findMany({
         where: {
           OR: [
-            { ic: id },
-            { passport: id },
+            { ic: { contains: id, mode: 'insensitive' } },
+            { passport: { contains: id, mode: 'insensitive' } },
             { name: { contains: id, mode: 'insensitive' } }
           ],
         },
@@ -400,6 +400,78 @@ export class LoanService {
     } catch (error) {
       console.error('Error fetching loan status:', error);
       return [];
+    }
+  }
+  async getLoanStatusByPassport(query: string) {
+    try {
+      const customers = await this.prisma.customer.findMany({
+        where: {
+          deleted_at: null,
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { ic: { contains: query, mode: 'insensitive' } },
+            { passport: { contains: query, mode: 'insensitive' } },
+          ]
+        },
+      });
+  
+      const customerIds = customers.map((customer: any) => customer.id);
+  
+      const loanStatusCounts = await this.prisma.loan.groupBy({
+        by: ['customer_id', 'status'],
+        where: {
+        customer_id: { in: customerIds },
+        },
+        _count: {
+        status: true,
+        },
+      });
+  
+      const statusMap = loanStatusCounts.reduce((acc: any, item: any) => {
+        if (!acc[item.customer_id]) {
+        acc[item.customer_id] = {
+          completedStatusCounts: 0,
+          normalStatusCounts: 0,
+          badDebtStatusCounts: 0,
+          badDebtCompletedStatusCounts: 0,
+        };
+        }
+        switch (item.status) {
+        case 'Completed':
+          acc[item.customer_id].completedStatusCounts = item._count.status;
+          break;
+        case 'Normal':
+          acc[item.customer_id].normalStatusCounts = item._count.status;
+          break;
+        case 'Bad Debt':
+          acc[item.customer_id].badDebtStatusCounts = item._count.status;
+          break;
+        case 'Bad Debt Completed':
+          acc[item.customer_id].badDebtCompletedStatusCounts = item._count.status;
+          break;
+        }
+        return acc;
+      }, {});
+  
+      customers.forEach((customer: any) => {
+        const counts = statusMap[customer.id] || {
+          completedStatusCounts: 0,
+        normalStatusCounts: 0,
+        badDebtStatusCounts: 0,
+        badDebtCompletedStatusCounts: 0,
+        };
+        customer.completedStatusCounts = counts.completedStatusCounts;
+        customer.normalStatusCounts = counts.normalStatusCounts;
+        customer.badDebtStatusCounts = counts.badDebtStatusCounts;
+        customer.badDebtCompletedStatusCounts = counts.badDebtCompletedStatusCounts;
+      });
+      console.log('customerscustomerscustomerscustomerscustomers');
+      console.log(customers);
+      console.log('customerscustomerscustomerscustomerscustomerscustomers');
+      return customers;
+    } catch (err) {
+      console.error('Database Error:', err);
+      throw new Error('Failed to fetch all customers.');
     }
   }
 }
