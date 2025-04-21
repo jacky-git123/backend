@@ -253,7 +253,8 @@ export class CustomerService {
 
   async update(id: string, data: any) {
     const { customer_relation, customer_address, company, bankDetails, ...customerData } = data;
-    data.created_by = data.userid;
+    // data.created_by = data.userid;
+    data.updated_by = data.userid;
     delete data.userid;
     return this.prisma.customer.update({
       where: { id },

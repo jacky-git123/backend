@@ -33,7 +33,10 @@ model customer {
   race             String?    @db.VarChar(255)
   deleted_at       DateTime?
   bank_details     Json?
+  
   created_by       String?    @db.Uuid
+  updated_by       String?    @db.Uuid
+  
   customer_address Json?
   employment       Json?
   relations        Json?
@@ -81,6 +84,9 @@ model installment {
 
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt @db.Timestamp(6)
+  
+  created_by       String?    @db.Uuid
+  updated_by       String?    @db.Uuid
 
   loan             loan?     @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "installment_loan_fk")
   payment          payment[]
@@ -97,6 +103,7 @@ model loan {
   interest         String?       @db.VarChar
   remark           String?       @db.VarChar
   created_by       String?       @db.Uuid
+  updated_by       String?       @db.Uuid
   supervisor       String?       @db.Uuid
   supervisor_2     String?       @db.Uuid // Added second supervisor field
   date_period      String?       @db.VarChar
@@ -148,6 +155,9 @@ model payment {
   created_at DateTime @default(now()) @db.Timestamp(6)
   updated_at DateTime @updatedAt @db.Timestamp(6)
 
+  created_by       String?    @db.Uuid
+  updated_by       String?    @db.Uuid
+
   installment     installment? @relation(fields: [installment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_installment_fk")
   loan            loan?        @relation(fields: [loan_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_loan_fk")
 }
@@ -171,7 +181,7 @@ model user {
   name       String?  @db.VarChar(255)
   status     Boolean? @default(true)
   generate_id      String?   @db.VarChar
-
+  deleted          Boolean? @default(false)
   // Relations: Loans where this user is a supervisor
   supervised_loans_1 loan[] @relation(name: "supervisor1") // Primary supervisor
   supervised_loans_2 loan[] @relation(name: "supervisor2") // Secondary supervisor

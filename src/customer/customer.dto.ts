@@ -54,6 +54,7 @@ export class CreateCustomerDto {
   @IsString()
   car_plate?: string;
   created_by: any;
+  updated_by: any;
 
   userid: string;
 }

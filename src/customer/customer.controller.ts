@@ -15,8 +15,10 @@ export class CustomerController {
     console.log(headers);
     if (headers.auth_user) {
       createCustomerDto.created_by = headers.user_id;
+      createCustomerDto.updated_by = headers.user_id;
     }else {
       createCustomerDto.created_by = createCustomerDto.userid;
+      createCustomerDto.updated_by = createCustomerDto.userid;
     }
     return this.customerService.create(createCustomerDto);
   }

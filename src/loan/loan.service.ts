@@ -140,6 +140,9 @@ export class LoanService {
         payment_per_term: createLoanDto.payment_per_term?.toString(),
         actual_profit: createLoanDto.actual_profit?.toString(),
         estimated_profit: createLoanDto.estimated_profit?.toString(),
+        
+        created_by: createLoanDto.userid,
+        updated_by: createLoanDto.userid
       },
     });
 
@@ -151,6 +154,7 @@ export class LoanService {
             generate_id: generateId,
             installment_date: format(date, 'yyyy-MM-dd'),
             loan: { connect: { id: loadData.id } },
+            created_by: createLoanDto.userid,
           },
         });
       }),
@@ -164,6 +168,7 @@ export class LoanService {
         balance: createLoanDto.amount_given?.toString(),
         account_details: 'Loan Disbursement',
         loan: { connect: { id: loadData.id } },
+        created_by: createLoanDto.userid,
       },
     });
     return loadData;
