@@ -66,6 +66,7 @@ export class LoanService {
         user_2: true,
       }
     };
+    
     // Only add where clause if filter is provided and not empty
     if (filter && filter.trim() !== '') {
       queryParams.where = {
@@ -104,6 +105,7 @@ export class LoanService {
         ]
       };
     }
+    queryParams.where = { ...queryParams.where, deleted: false } // Remove any undefined or null values from the where clause
   
     // Execute the query with the constructed parameters
     return this.prisma.loan.findMany(queryParams);
