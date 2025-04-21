@@ -35,11 +35,12 @@ export class LoanController {
   
   @Put('installment/:id')
   updateInstallment(@Param('id') id: string, @Body() updateInstallment: any) {
+    const authUserId = updateInstallment.userid;
     delete updateInstallment.userid;
     const arrayOfObjects = Object.entries(updateInstallment)
     .filter(([key]) => !isNaN(Number(key))) // keep only numeric keys
     .map(([, value]) => value);
-    return this.loanService.updateInstallment(id, arrayOfObjects);
+    return this.loanService.updateInstallment(id, arrayOfObjects, authUserId);
   }
 
   @Delete(':id')
