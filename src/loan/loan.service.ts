@@ -108,7 +108,15 @@ export class LoanService {
     queryParams.where = { ...queryParams.where, deleted: false } // Remove any undefined or null values from the where clause
   
     // Execute the query with the constructed parameters
-    return this.prisma.loan.findMany(queryParams);
+    const data = await this.prisma.loan.findMany(queryParams);
+    const total = await this.prisma.loan.count(queryParams);
+    return {
+      data,
+      total,
+      page: page,
+      limit: limit,
+    };
+
   }
 
   async create(createLoanDto) {

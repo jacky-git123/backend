@@ -11,12 +11,30 @@ export class UserService {
       private utilService:RunningNumberGenerator
   ) {}
 
-  async findAll() {
-    return this.prisma.user.findMany({
+  async findAll(page: number = 0, limit: number = 10, filter: any, authUserId: any) {
+    const skip = (page - 1) * limit;
+    const data = await this.prisma.user.findMany({
+      skip,
+      take: limit,
       orderBy: {
         created_at: 'desc',
       },
+      where: pickBy({
+        deleted: false,
+      }),
     });
+
+    const total = await this.prisma.user.count({
+      where: pickBy({
+        deleted: false,
+      }),
+    });
+    return {
+      data,
+      total,
+      skip: Number(page),
+      take: Number(limit),
+    };
   }
 
   async findAllLeads() {
@@ -79,9 +97,10 @@ export class UserService {
     return null;
   }
 
-  findAgentAndLeads(key: string) {
-    return this.prisma.user.findMany({
+  async findAgentAndLeads(key: string) {
+    const data = await this.prisma.user.findMany({
       where: pickBy({
+        deleted: false,
         OR: [
           {
             name: {
@@ -98,6 +117,29 @@ export class UserService {
         ],
       }),
     });
+    const total = await this.prisma.user.count({
+      where: pickBy({
+        deleted: false,
+        OR: [
+          {
+            name: {
+              contains: key,
+              mode: "insensitive"
+            }
+          },
+          {
+            email: {
+              contains: key,
+              mode: "insensitive"
+            }
+          }
+        ],
+      }),
+    });
+    return {
+      data,
+      total,
+    };
   }
 
   async updatePassword(userId: string, hashedPassword: string) {
