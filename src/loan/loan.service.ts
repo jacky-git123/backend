@@ -371,11 +371,12 @@ export class LoanService {
     return dates;
   }
 
-  async getLoanStatusByPassport_old(id: string) {
+  async getLoanStatusByPassport(id: string) {
     try {
       // Find all matching customers (not just first)
       const customers = await this.prisma.customer.findMany({
         where: {
+          deleted_at: null,
           OR: [
             { ic: { contains: id, mode: 'insensitive' } },
             { passport: { contains: id, mode: 'insensitive' } },
@@ -408,7 +409,7 @@ export class LoanService {
       return [];
     }
   }
-  async getLoanStatusByPassport(query: string) {
+  async getLoanStatusByPassport_new(query: string) {
     try {
       const customers = await this.prisma.customer.findMany({
         where: {
