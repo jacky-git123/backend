@@ -54,6 +54,8 @@ export class CustomerService {
         id: authUserId,
       }
     });
+    // console.log('authUser', authUser);
+    // if (authUser.role === 'SUPER_ADMIN') {}
   
     // Initialize where clause with deleted_at: null
     let where: any = {
@@ -61,7 +63,7 @@ export class CustomerService {
     };
   
     // If user has a supervisor, we need to query customers with that supervisor in leadUser array
-    if (authUser.supervisor) {
+    if (authUser.supervisor && authUser.supervisor !== 'SUPER_ADMIN') {
       // Using raw filter for leadUser JSON array
       where = {
         ...where,
@@ -123,7 +125,7 @@ export class CustomerService {
     // If Prisma's JSON filtering isn't working for the array, use a raw query approach
     let customers, total;
     
-    if (authUser.supervisor) {
+    if (authUser.supervisor && authUser.supervisor !== 'SUPER_ADMIN') {
       // Using raw query to handle the JSON array search properly
       const rawQuery = `
         SELECT * FROM "customer"
