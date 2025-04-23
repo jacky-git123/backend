@@ -671,30 +671,33 @@ export class LoanService {
       supervisorMap.set(supervisor.id, supervisor.name);
     });
 
-    // Group by customer_id and nest status and supervisor information
+    // Initialize result map with all customers
     const customerGroupedData = new Map();
     
-    // Process each loan group to reorganize by customer
+    // First ensure all customers are in the result, even if they have no loans
+    customers.forEach(customer => {
+      customerGroupedData.set(customer.id, {
+        customer_id: customer.id,
+        customerDetails: customerMap.get(customer.id),
+        upcoming_installment_date: customerInstallmentDates.get(customer.id)?.upcoming_installment_date || null,
+        last_installment_date: customerInstallmentDates.get(customer.id)?.last_installment_date || null,
+        loans: [],
+        total_loan_count: 0
+      });
+    });
+    
+    // Process each loan group to add loan details
     loanGroups.forEach(group => {
       const customerId = group.customer_id;
       
-      if (!customerGroupedData.has(customerId)) {
-        // Initialize customer entry with customer details
-        customerGroupedData.set(customerId, {
-          customer_id: customerId,
-          customerDetails: customerId ? customerMap.get(customerId) : null,
-          upcoming_installment_date: customerId ? 
-            customerInstallmentDates.get(customerId)?.upcoming_installment_date : null,
-          last_installment_date: customerId ? 
-            customerInstallmentDates.get(customerId)?.last_installment_date : null,
-          loans: [],
-          total_loan_count: 0
-        });
-      }
+      if (!customerId) return; // Skip if no customer ID
       
-      // Add this loan group to the customer's loans array
+      // The customer should already be in our map from the initialization step
       const customerData = customerGroupedData.get(customerId);
       
+      if (!customerData) return; // Skip if customer data not found (shouldn't happen)
+      
+      // Add this loan group to the customer's loans array
       customerData.loans.push({
         status: group.status,
         supervisor_id: group.supervisor,
