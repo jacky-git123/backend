@@ -503,7 +503,8 @@ export class LoanService {
   }
 
   async getLoanCountByGroups(searchTerm?: string) {
-    // Find all matching customers
+
+    // Find all matching customers with needed fields
     const customers = await this.prisma.customer.findMany({
       where: searchTerm
       ? {
@@ -528,7 +529,7 @@ export class LoanService {
 
     // Get customer IDs
     const customerIds = customers.map((customer) => customer.id);
-
+    
     // Create a map of customer IDs to customer details for easier lookup
     const customerMap = new Map();
     customers.forEach(customer => {
@@ -554,6 +555,100 @@ export class LoanService {
       },
     });
 
+    // Fetch all loans for these customers to get their IDs for installment lookup
+    const loans = await this.prisma.loan.findMany({
+      where: {
+        customer_id: {
+          in: customerIds,
+        },
+        deleted: false,
+      },
+      select: {
+        id: true,
+        customer_id: true,
+      },
+    });
+
+    // Map loans to customers for easier lookup
+    const customerToLoansMap = new Map();
+    loans.forEach(loan => {
+      if (!customerToLoansMap.has(loan.customer_id)) {
+        customerToLoansMap.set(loan.customer_id, []);
+      }
+      customerToLoansMap.get(loan.customer_id).push(loan.id);
+    });
+
+    // Get installment dates for all these loans
+    const currentDate = new Date().toISOString().split('T')[0]; // Current date in YYYY-MM-DD format
+    
+    // Process installments for each customer
+    const customerInstallmentDates = new Map();
+    
+    // Process each customer's loans to find installment dates
+    for (const [customerId, loanIds] of customerToLoansMap.entries()) {
+      if (!loanIds || loanIds.length === 0) continue;
+      
+      // Get all installments for this customer's loans
+      const installments = await this.prisma.installment.findMany({
+        where: {
+          loan_id: {
+            in: loanIds,
+          },
+          deleted: false,
+        },
+        select: {
+          installment_date: true,
+        },
+        orderBy: {
+          installment_date: 'asc',
+        },
+      });
+      
+      if (installments.length === 0) {
+        customerInstallmentDates.set(customerId, {
+          upcoming_installment_date: null,
+          last_installment_date: null,
+        });
+        continue;
+      }
+      
+      // Parse dates and find upcoming and last installment dates
+      let upcomingDate = null;
+      let lastDate = null;
+      
+      // Convert installment_date strings to Date objects for comparison
+      const parsedDates = installments
+        .filter(inst => inst.installment_date)
+        .map(inst => {
+          // Assuming installment_date is in a format like YYYY-MM-DD
+          return {
+            original: inst.installment_date,
+            date: new Date(inst.installment_date)
+          };
+        })
+        .filter(parsed => !isNaN(parsed.date.getTime())); // Filter out invalid dates
+      
+      if (parsedDates.length > 0) {
+        // Sort dates
+        parsedDates.sort((a, b) => a.date.getTime() - b.date.getTime());
+        
+        // Find first date that's in the future (upcoming)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const futureDate = parsedDates.find(d => d.date >= today);
+        upcomingDate = futureDate ? futureDate.original : null;
+        
+        // Last date is the latest one
+        lastDate = parsedDates[parsedDates.length - 1].original;
+      }
+      
+      customerInstallmentDates.set(customerId, {
+        upcoming_installment_date: upcomingDate,
+        last_installment_date: lastDate,
+      });
+    }
+
     // Fetch supervisor details for better context
     const supervisorIds = [...new Set(loanGroups.map(group => group.supervisor).filter(Boolean))];
     
@@ -576,21 +671,110 @@ export class LoanService {
       supervisorMap.set(supervisor.id, supervisor.name);
     });
 
-    // Format the result
-    const result = loanGroups.map(group => {
-      const customerDetails = group.customer_id ? customerMap.get(group.customer_id) : null;
+    // Group by customer_id and nest status and supervisor information
+    const customerGroupedData = new Map();
+    
+    // Process each loan group to reorganize by customer
+    loanGroups.forEach(group => {
+      const customerId = group.customer_id;
       
-      return {
-        customer_id: group.customer_id,
-        customerDetails,
+      if (!customerGroupedData.has(customerId)) {
+        // Initialize customer entry with customer details
+        customerGroupedData.set(customerId, {
+          customer_id: customerId,
+          customerDetails: customerId ? customerMap.get(customerId) : null,
+          upcoming_installment_date: customerId ? 
+            customerInstallmentDates.get(customerId)?.upcoming_installment_date : null,
+          last_installment_date: customerId ? 
+            customerInstallmentDates.get(customerId)?.last_installment_date : null,
+          loans: [],
+          total_loan_count: 0
+        });
+      }
+      
+      // Add this loan group to the customer's loans array
+      const customerData = customerGroupedData.get(customerId);
+      
+      customerData.loans.push({
         status: group.status,
         supervisor_id: group.supervisor,
         supervisor_name: group.supervisor ? supervisorMap.get(group.supervisor) : null,
-        loan_count: group._count.id,
-      };
+        loan_count: group._count.id
+      });
+      
+      // Increment the total loan count for this customer
+      customerData.total_loan_count += group._count.id;
     });
+    
+    // Convert map to array for the final result
+    return Array.from(customerGroupedData.values());
+  }
 
-
-    return result;
+  async fetchCurrentUserCustomer(query?: string) {
+    if (!query || query.trim() === '') {
+      return { data: [] };
+    }
+    try {
+  
+      const currentDate = new Date().toISOString().split('T')[0]; // Returns "2025-04-02"
+  
+      const customersWithMatchingLoans = await this.prisma.$queryRaw`
+        SELECT 
+          c.id AS customer_id, 
+          c.generate_id AS customer_generate_id, 
+          c.name AS customer_name, 
+          c.ic AS customer_ic, 
+          c.passport AS customer_passport, 
+          c.deleted_at AS customer_deleted_at,   
+          l.id AS loan_id, 
+          l.generate_id AS loan_generate_id, 
+          l.customer_id AS loan_customer_id, 
+          l.amount_given AS loan_amount, 
+          l.interest AS loan_interest_rate, 
+          l.status AS loan_status, 
+          l.supervisor AS loan_agent_1_id, 
+          l.supervisor_2 AS loan_agent_2_id, 
+          i.generate_id AS installment_generate_id, 
+          i.loan_id AS installment_loan_id, 
+          i.due_amount AS installment_amount, 
+          i.installment_date AS installment_date, 
+          i.status AS installment_status,
+          -- Agent 1 Details
+          u1.id AS agent_1_id,
+          u1.name AS agent_1_name,
+          u1.email AS agent_1_email,
+          -- Agent 2 Details
+          u2.id AS agent_2_id,
+          u2.name AS agent_2_name,
+          u2.email AS agent_2_email
+          
+        FROM customer c
+        LEFT JOIN loan l ON c.id = l.customer_id
+        LEFT JOIN installment i ON l.id = i.loan_id 
+            AND i.installment_date::TEXT::DATE > ${currentDate}::DATE -- Fixes Date Binding
+        
+        -- Join Agent 1 (User)
+        LEFT JOIN "user" u1 ON l.supervisor = u1.id
+  
+        -- Join Agent 2 (User)
+        LEFT JOIN "user" u2 ON l.supervisor_2 = u2.id
+  
+        WHERE c.deleted_at IS NULL
+          AND (
+              c.generate_id ILIKE ${'%' + query + '%'}
+              OR c.name ILIKE ${'%' + query + '%'}
+              OR c.ic ILIKE ${'%' + query + '%'}
+              OR c.passport ILIKE ${'%' + query + '%'}
+          )
+        ORDER BY i.installment_date DESC
+      `;
+  
+      console.log('customersWithMatchingLoans', customersWithMatchingLoans);
+      
+      return { data: customersWithMatchingLoans || [] };
+    } catch (error) {
+      console.error('Error fetching customer data:', error);
+      return { data: [] };
+    }
   }
 }
