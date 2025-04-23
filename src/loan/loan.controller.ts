@@ -55,7 +55,7 @@ export class LoanController {
 
   @Get('user-status/:passportNumber')
   async getLoanStatusByPassport(@Param('passportNumber') passportNumber: string) {
-    return this.loanService.getLoanStatusByPassport(passportNumber);
+    return this.loanService.getLoanStatusByPassport_new(passportNumber);
   }
 
 
