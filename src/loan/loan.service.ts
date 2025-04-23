@@ -445,37 +445,37 @@ export class LoanService {
       const customerIds = customers.map((customer: any) => customer.id);
   
       const loanStatusCounts = await this.prisma.loan.groupBy({
-        by: ['customer_id', 'status'],
+        by: ['customer_id', 'status', 'supervisor'],
         where: {
-        customer_id: { in: customerIds },
+          customer_id: { in: customerIds },
         },
         _count: {
-        status: true,
+          status: true,
         },
       });
   
       const statusMap = loanStatusCounts.reduce((acc: any, item: any) => {
         if (!acc[item.customer_id]) {
-        acc[item.customer_id] = {
-          completedStatusCounts: 0,
-          normalStatusCounts: 0,
-          badDebtStatusCounts: 0,
-          badDebtCompletedStatusCounts: 0,
-        };
+          acc[item.customer_id] = {
+            completedStatusCounts: 0,
+            normalStatusCounts: 0,
+            badDebtStatusCounts: 0,
+            badDebtCompletedStatusCounts: 0,
+          };
         }
         switch (item.status) {
-        case 'Completed':
-          acc[item.customer_id].completedStatusCounts = item._count.status;
-          break;
-        case 'Normal':
-          acc[item.customer_id].normalStatusCounts = item._count.status;
-          break;
-        case 'Bad Debt':
-          acc[item.customer_id].badDebtStatusCounts = item._count.status;
-          break;
-        case 'Bad Debt Completed':
-          acc[item.customer_id].badDebtCompletedStatusCounts = item._count.status;
-          break;
+          case 'Completed':
+            acc[item.customer_id].completedStatusCounts = item._count.status;
+            break;
+          case 'Normal':
+            acc[item.customer_id].normalStatusCounts = item._count.status;
+            break;
+          case 'Bad Debt':
+            acc[item.customer_id].badDebtStatusCounts = item._count.status;
+            break;
+          case 'Bad Debt Completed':
+            acc[item.customer_id].badDebtCompletedStatusCounts = item._count.status;
+            break;
         }
         return acc;
       }, {});
@@ -483,9 +483,9 @@ export class LoanService {
       customers.forEach((customer: any) => {
         const counts = statusMap[customer.id] || {
           completedStatusCounts: 0,
-        normalStatusCounts: 0,
-        badDebtStatusCounts: 0,
-        badDebtCompletedStatusCounts: 0,
+          normalStatusCounts: 0,
+          badDebtStatusCounts: 0,
+          badDebtCompletedStatusCounts: 0,
         };
         customer.completedStatusCounts = counts.completedStatusCounts;
         customer.normalStatusCounts = counts.normalStatusCounts;
@@ -500,5 +500,97 @@ export class LoanService {
       console.error('Database Error:', err);
       throw new Error('Failed to fetch all customers.');
     }
+  }
+
+  async getLoanCountByGroups(searchTerm?: string) {
+    // Find all matching customers
+    const customers = await this.prisma.customer.findMany({
+      where: searchTerm
+      ? {
+          OR: [
+            { name: { contains: searchTerm, mode: 'insensitive' } },
+            { email: { contains: searchTerm, mode: 'insensitive' } },
+            { ic: { contains: searchTerm, mode: 'insensitive' } },
+            { passport: { contains: searchTerm, mode: 'insensitive' } },
+            { generate_id: { contains: searchTerm, mode: 'insensitive' } },
+          ],
+          deleted: false,
+        }
+      : { deleted: false },
+      select: {
+        id: true,
+        name: true,
+        ic: true,
+        passport: true,
+        generate_id: true,
+      },
+    });
+
+    // Get customer IDs
+    const customerIds = customers.map((customer) => customer.id);
+
+    // Create a map of customer IDs to customer details for easier lookup
+    const customerMap = new Map();
+    customers.forEach(customer => {
+      customerMap.set(customer.id, {
+        name: customer.name,
+        ic: customer.ic,
+        passport: customer.passport,
+        generate_id: customer.generate_id,
+      });
+    });
+
+    // Group loans by customer_id, status, and supervisor, and count them
+    const loanGroups = await this.prisma.loan.groupBy({
+      by: ['customer_id', 'status', 'supervisor'],
+      where: {
+        customer_id: {
+          in: customerIds,
+        },
+        deleted: false,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Fetch supervisor details for better context
+    const supervisorIds = [...new Set(loanGroups.map(group => group.supervisor).filter(Boolean))];
+    
+    const supervisors = supervisorIds.length > 0 ? 
+      await this.prisma.user.findMany({
+        where: {
+          id: {
+            in: supervisorIds as string[],
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      }) : [];
+
+    // Create a map of supervisor IDs to names for easier lookup
+    const supervisorMap = new Map();
+    supervisors.forEach(supervisor => {
+      supervisorMap.set(supervisor.id, supervisor.name);
+    });
+
+    // Format the result
+    const result = loanGroups.map(group => {
+      const customerDetails = group.customer_id ? customerMap.get(group.customer_id) : null;
+      
+      return {
+        customer_id: group.customer_id,
+        customerDetails,
+        status: group.status,
+        supervisor_id: group.supervisor,
+        supervisor_name: group.supervisor ? supervisorMap.get(group.supervisor) : null,
+        loan_count: group._count.id,
+      };
+    });
+
+
+    return result;
   }
 }
