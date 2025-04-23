@@ -122,6 +122,12 @@ export class UserService {
         deleted: false,
         OR: [
           {
+            generate_id: {
+              contains: key,
+              mode: "insensitive"
+            }
+          },
+          {
             name: {
               contains: key,
               mode: "insensitive"

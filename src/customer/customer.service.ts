@@ -91,6 +91,12 @@ export class CustomerService {
         ...where,
         OR: [
           {
+            generate_id: {
+              contains: filter,
+              mode: "insensitive"
+            }
+          },
+          {
             name: {
               contains: filter,
               mode: "insensitive"
