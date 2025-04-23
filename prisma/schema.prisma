@@ -31,7 +31,10 @@ model customer {
   name             String?    @db.VarChar(255)
   passport         String?    @db.VarChar(255) @unique
   race             String?    @db.VarChar(255)
+  
   deleted_at       DateTime?
+  deleted          Boolean? @default(false)
+
   bank_details     Json?
   
   created_by       String?    @db.Uuid

@@ -272,7 +272,7 @@ export class CustomerService {
 
   async delete(id: string) {
     return this.prisma.customer.update({
-      data: { deleted_at: new Date() },
+      data: { deleted_at: new Date(), deleted: true },
       where: { id },
     });
   }
