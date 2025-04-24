@@ -6,7 +6,7 @@ export class RunningNumberGenerator {
   constructor(private readonly prisma: PrismaService) {}
 
   async generateUniqueNumber(category: string): Promise<string> {
-    return `${category}${Math.floor(Math.random() * 900000 + 100000).toString().toUpperCase()}`;
+    // return `${category}${Math.floor(Math.random() * 900000 + 100000).toString().toUpperCase()}`;
     const now = new Date();
     const year = now.getFullYear() % 100;
 
