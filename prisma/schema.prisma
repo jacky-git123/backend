@@ -100,6 +100,7 @@ model loan {
   id               String        @id(map: "loan_pk") @default(uuid()) @db.Uuid
   customer_id      String?       @db.Uuid
   repayment_date   String?       @db.VarChar
+  loan_date        String?       @db.VarChar
   principal_amount String?       @db.VarChar
   deposit_amount   String?       @db.VarChar
   application_fee  String?       @db.VarChar
