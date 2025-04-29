@@ -11,85 +11,170 @@ export class PaymentService {
       private utilService:RunningNumberGenerator
     ) {}
 
-    async create(createPaymentDto: any) {
-      const createdPayments = [];
-      createPaymentDto = Object.entries(createPaymentDto)
-        .filter(([key]) => !isNaN(Number(key))) // Only numeric keys
-        .map(([, value]) => value);
-    
-      for (let i = 0; i < createPaymentDto.length; i++) {
-        const payment = createPaymentDto[i];
-        
-        // Check if payment for this installment already exists (if installment_id is provided)
-        if (payment.generate_id) {
-          const existingPayment = await this.prisma.payment.findFirst({
-            where: { 
-              installment_id: payment.generate_id 
-            },
-          });
-          
-          if (existingPayment) {
-            await this.prisma.payment.updateMany({
-              data: {
-                amount: payment.amount,
-                balance: payment.balance,
-                account_details: payment.account_details,
-                payment_date: payment.payment_date,
-              },
-              where: { 
-                generate_id: payment.generate_id 
-              },
-            });
-            // Skip this payment as it already exists
-            console.log(`Payment for installment ${payment.installment_id} already exists. Skipping.`);
-            continue;
-          }
-          
-          // Verify installment exists
-          const _installment = await this.prisma.installment.findFirst({
-            where: { id: payment.installment_id },
-          });
-          
-          if (!_installment) {
-            throw new Error(`Installment with id ${payment.installment_id} not found`);
-          }
-        }
-        
-        // Generate unique ID for new payment
-        const generate_id = await this.utilService.generateUniqueNumber('PM');
-        payment['generate_id'] = generate_id;
-        
-        const newData: any = {
-          generate_id: payment.generate_id,
-          type: payment.type || 'in',
-          payment_date: payment.payment_date,
-          amount: payment.amount,
-          balance: payment.balance,
-          account_details: payment.account_details,
-          loan: {
-            connect: {
-              id: payment.loan_id,
-            }
-          }
-        };
-        
-        if (payment.installment_id) {
-          newData.installment = {
-            connect: {
-              id: payment.installment_id,
-            },
-          };
-        }
-        
-        const createdPayment = await this.prisma.payment.create({
-          data: newData,
+  async createOrUpdate(paymentDto: any) {
+    // Extract payment objects from numbered keys (0, 1, etc.)
+    const payments = Object.entries(paymentDto)
+      .filter(([key]) => !isNaN(Number(key)))
+      .map(([, value]) => value as any);
+
+    // Get userid if present
+    const userid = paymentDto.userid;
+
+    const results = [];
+
+    for (const payment of payments) {
+      // Check if payment already exists (has generate_id)
+      if (payment.generate_id) {
+        // Check if this generate_id already exists in the database
+        const existingPayment = await this.prisma.payment.findFirst({
+          where: { generate_id: payment.generate_id }
         });
-        
-        createdPayments.push(createdPayment);
+
+        if (existingPayment) {
+          // Update existing payment
+          const updatedPayment = await this.updatePayment(payment, userid);
+          results.push(updatedPayment);
+        } else {
+          // Create new payment with provided generate_id
+          const newPayment = await this.createPayment(payment, userid);
+          results.push(newPayment);
+        }
+      } else {
+        // Create new payment
+        const newPayment = await this.createPayment(payment, userid);
+        results.push(newPayment);
       }
-      
-      return createdPayments;
     }
+
+    return results;
+  }
+
+  private async createPayment(payment: any, userId?: string) {
+    // Generate unique ID if not already present
+    if (!payment.generate_id) {
+      payment.generate_id = await this.utilService.generateUniqueNumber('PM');
+    }
+
+    // Validate installment if specified
+    if (payment.installment_id) {
+      const _installment = await this.prisma.installment.findFirst({
+        where: { id: payment.installment_id },
+      });
+
+      if (!_installment) {
+        throw new Error(`Installment with id ${payment.installment_id} not found`);
+      }
+    }
+
+    // Prepare data for creation
+    const paymentData: any = {
+      generate_id: payment.generate_id,
+      type: payment.type || 'In',
+      payment_date: payment.payment_date,
+      amount: payment.amount,
+      balance: payment.balance,
+      account_details: payment.account_details,
+      status: payment.status || 'Paid',
+      receiving_date: payment.receiving_date,
+      created_by: userId,
+    };
+
+    // Connect to loan if specified
+    if (payment.loan_id) {
+      paymentData.loan = {
+        connect: {
+          id: payment.loan_id,
+        }
+      };
+    }
+
+    // Connect to installment if specified
+    if (payment.installment_id) {
+      paymentData.installment = {
+        connect: {
+          id: payment.installment_id,
+        },
+      };
+    }
+
+    // Create payment record
+    const createdPayment = await this.prisma.payment.create({
+      data: paymentData,
+    });
+
+    return createdPayment;
+  }
+
+  private async updatePayment(payment: any, userId?: string) {
+    // Validate installment if specified
+    if (payment.installment_id) {
+      const _installment = await this.prisma.installment.findFirst({
+        where: { id: payment.installment_id },
+      });
+
+      if (!_installment) {
+        throw new Error(`Installment with id ${payment.installment_id} not found`);
+      }
+    }
+
+    // Find the existing payment by generate_id
+    const existingPayment = await this.prisma.payment.findFirst({
+      where: { generate_id: payment.generate_id }
+    });
+
+    if (!existingPayment) {
+      throw new Error(`Payment with generate_id ${payment.generate_id} not found`);
+    }
+
+    // Prepare data for update
+    const paymentData: any = {
+      type: payment.type,
+      payment_date: payment.payment_date,
+      amount: payment.amount,
+      balance: payment.balance,
+      account_details: payment.account_details,
+      status: payment.status,
+      receiving_date: payment.receiving_date,
+      updated_by: userId,
+      updated_at: new Date(),
+    };
+
+    // Only include fields that are provided
+    Object.keys(paymentData).forEach(key =>
+      paymentData[key] === undefined && delete paymentData[key]
+    );
+
+    // Update loan connection if specified
+    if (payment.loan_id) {
+      paymentData.loan = {
+        connect: {
+          id: payment.loan_id,
+        }
+      };
+    }
+
+    // Update installment connection if specified
+    if (payment.installment_id) {
+      paymentData.installment = {
+        connect: {
+          id: payment.installment_id,
+        },
+      };
+    } else if (payment.installment_id === null) {
+      // Disconnect installment if explicitly set to null
+      paymentData.installment = {
+        disconnect: true
+      };
+    }
+
+    // Update payment record using the id from the found record
+    const updatedPayment = await this.prisma.payment.update({
+      where: { id: existingPayment.id },
+      data: paymentData,
+    });
+
+    return updatedPayment;
+  }
 
   async findAll() {
     return this.prisma.payment.findMany();
