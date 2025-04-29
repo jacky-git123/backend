@@ -178,8 +178,8 @@ export class LoanService {
       data: {
         type: 'Out',
         payment_date: createLoanDto.repayment_date,
-        amount: (Number(createLoanDto.principal_amount)-Number(createLoanDto.deposit_amount))?.toString(),
-        balance: (Number(createLoanDto.principal_amount)-Number(createLoanDto.deposit_amount))?.toString(),
+        amount: (Number(createLoanDto.principal_amount)-(Number(createLoanDto.deposit_amount)+Number(createLoanDto.application_fee)))?.toString(),
+        balance: (Number(createLoanDto.principal_amount)-(Number(createLoanDto.deposit_amount)))?.toString(),
         account_details: 'Loan Disbursement',
         loan: { connect: { id: loadData.id } },
         created_by: createLoanDto.userid,
