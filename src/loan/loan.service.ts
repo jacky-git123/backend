@@ -165,7 +165,7 @@ export class LoanService {
         const generateId = await this.utilService.generateUniqueNumber('IN');
         await this.prisma.installment.create({
           data: {
-            generate_id: generateId,
+            generate_id: generateId+index,
             installment_date: format(date, 'yyyy-MM-dd'),
             loan: { connect: { id: loadData.id } },
             created_by: createLoanDto.userid,
