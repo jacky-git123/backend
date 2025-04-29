@@ -74,8 +74,8 @@ export class PaymentService {
       amount: payment.amount,
       balance: payment.balance,
       account_details: payment.account_details,
-      status: payment.status || 'Paid',
-      receiving_date: payment.receiving_date,
+      // status: payment.status || 'Paid',
+      // receiving_date: payment.receiving_date,
       created_by: userId,
     };
 
@@ -133,8 +133,8 @@ export class PaymentService {
       amount: payment.amount,
       balance: payment.balance,
       account_details: payment.account_details,
-      status: payment.status,
-      receiving_date: payment.receiving_date,
+      // status: payment.status,
+      // receiving_date: payment.receiving_date,
       updated_by: userId,
       updated_at: new Date(),
     };
