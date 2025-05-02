@@ -71,6 +71,7 @@ export class PaymentService {
       generate_id: payment.generate_id,
       type: payment.type || 'In',
       payment_date: payment.payment_date,
+      installment_date: payment.installment_date,
       amount: payment.amount,
       balance: payment.balance,
       account_details: payment.account_details,
@@ -130,6 +131,7 @@ export class PaymentService {
     const paymentData: any = {
       type: payment.type,
       payment_date: payment.payment_date,
+      installment_date: payment.installment_date,
       amount: payment.amount,
       balance: payment.balance,
       account_details: payment.account_details,
