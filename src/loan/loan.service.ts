@@ -253,7 +253,7 @@ export class LoanService {
               installment.loan_id = loan.id;
             }
             if (!installment.receiving_date) {
-              installment.receiving_date = new Date();
+              installment.receiving_date = new Date().toISOString();
             }
             await this.prisma.installment.create({
               data: installment,
