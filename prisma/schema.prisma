@@ -151,6 +151,7 @@ model payment {
   type            String?      @db.VarChar
   installment_id  String?      @db.Uuid
   payment_date    String?      @db.VarChar
+  installment_date    String?      @db.VarChar
   amount          String?      @db.VarChar
   balance         String?      @db.VarChar
   account_details String?      @db.VarChar
