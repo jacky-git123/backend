@@ -236,10 +236,29 @@ export class LoanService {
         installments.map(async (installment) => {
           // console.log(installment, 'installments');
           installment.updated_by = authUserId;
-          await this.prisma.installment.update({
-            where: { id: installment.id },
-            data: installment,
-          });
+          if (installment.id) {
+            await this.prisma.installment.update({
+              where: { id: installment.id },
+              data: installment,
+            });
+          } else {
+            if (!installment.generate_id) {
+              const generateId = await this.utilService.generateUniqueNumber('IN');
+              installment.generate_id = generateId;
+            }
+            if (!installment.loan_id) {
+              const loan = await this.prisma.loan.findFirst({
+                where: { generate_id: id },
+              });
+              installment.loan_id = loan.id;
+            }
+            if (!installment.receiving_date) {
+              installment.receiving_date = new Date();
+            }
+            await this.prisma.installment.create({
+              data: installment,
+            });
+          }
         }),
       );
       return this.prisma.loan.findFirst({
