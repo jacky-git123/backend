@@ -28,9 +28,9 @@ export class UserController {
     return this.userService.findAllLeads();
   }
 
-  @Get('getAgents')
+  @Get('getAdminsAndLeads')
   async getAgents() {
-    return this.userService.getAgents();
+    return this.userService.getAdminsAndLeads();
   }
 
   @Get(':id')
