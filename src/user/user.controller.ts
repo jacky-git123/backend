@@ -28,6 +28,11 @@ export class UserController {
     return this.userService.findAllLeads();
   }
 
+  @Get('getAgents')
+  async getAgents() {
+    return this.userService.getAgents();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.userService.findOne(id);

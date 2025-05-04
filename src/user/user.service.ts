@@ -46,6 +46,15 @@ export class UserService {
     });
   }
 
+  async getAgents() {
+    return this.prisma.user.findMany({
+      where:{'role':'AGENT'},
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+  }
+
   async findOne(id: string): Promise<any> {
     return this.prisma.user.findUnique({
       where: {
