@@ -78,7 +78,7 @@ export class UserService {
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email } });
+    return this.prisma.user.findUnique({ where: { email, status: true, deleted: false } });
   }
 
   async createUser(payload): Promise<any> {
