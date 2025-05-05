@@ -49,6 +49,8 @@ export class UserService {
   async getAdminsAndLeads() {
     return this.prisma.user.findMany({
       where: {
+        status: true,
+        deleted: false,
         role: {
           in: ['ADMIN', 'LEAD'],
         },
@@ -114,6 +116,7 @@ export class UserService {
     const data = await this.prisma.user.findMany({
       where: pickBy({
         deleted: false,
+        status: true,
         OR: [
           {
             name: {
@@ -133,6 +136,7 @@ export class UserService {
     const total = await this.prisma.user.count({
       where: pickBy({
         deleted: false,
+        status: true,
         OR: [
           {
             generate_id: {
