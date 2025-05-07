@@ -56,6 +56,9 @@ export class UserService {
       where: {
         deleted: false,
         status: true,
+        role: {
+          in: ['AGENT', 'LEAD'],
+        },
         ...filter,
       },
     });
@@ -64,6 +67,9 @@ export class UserService {
       where: {
         deleted: false,
         status: true,
+        role: {
+          in: ['AGENT', 'LEAD'],
+        },
         ...filter,
       },
     });
