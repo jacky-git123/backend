@@ -18,7 +18,7 @@ export class UserService {
       take: limit,
       orderBy: [
         {
-          status: 'asc',  // false values come before true values in ascending order
+          status: 'desc',  // false values come before true values in ascending order
         },
         {
           created_at: 'desc',
@@ -41,6 +41,41 @@ export class UserService {
       take: Number(limit),
     };
   }
+
+  async findAllActive(page: number = 1, limit: number = 10, filter: any, authUserId: any) {
+    const skip = (page - 1) * limit;
+  
+    const data = await this.prisma.user.findMany({
+      skip,
+      take: limit,
+      orderBy: [
+        {
+          created_at: 'desc',
+        }
+      ],
+      where: {
+        deleted: false,
+        status: true,
+        ...filter,
+      },
+    });
+  
+    const total = await this.prisma.user.count({
+      where: {
+        deleted: false,
+        status: true,
+        ...filter,
+      },
+    });
+  
+    return {
+      data,
+      total,
+      skip,
+      take: limit,
+    };
+  }
+  
 
   async findAllLeads() {
     return this.prisma.user.findMany({

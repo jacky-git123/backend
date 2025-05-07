@@ -23,6 +23,16 @@ export class UserController {
     return this.userService.findAll(Number(page), Number(limit), filter, userid);
   }
 
+  @Get('activeUser')
+  async findAllActive(
+    @Query('page') page: number = 0,
+    @Query('limit') limit: number = 10,
+    @Query('filter') filter: any,
+    @Query('userid') userid: any,
+  ) {
+    return this.userService.findAllActive(Number(page), Number(limit), filter, userid);
+  }
+
   @Get('getLeads')
   async findLeads() {
     return this.userService.findAllLeads();
