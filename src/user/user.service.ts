@@ -16,9 +16,14 @@ export class UserService {
     const data = await this.prisma.user.findMany({
       skip,
       take: limit,
-      orderBy: {
-        created_at: 'desc',
-      },
+      orderBy: [
+        {
+          status: 'asc',  // false values come before true values in ascending order
+        },
+        {
+          created_at: 'desc',
+        }
+      ],
       where: pickBy({
         deleted: false,
       }),
