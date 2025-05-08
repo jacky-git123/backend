@@ -123,6 +123,7 @@ export class CustomerService {
     }
   
     console.log('where');
+    where = { ...where, deleted: false }
     console.log(where);
     console.log('where');
   
@@ -175,7 +176,7 @@ export class CustomerService {
         this.prisma.customer.findMany({
           skip,
           take,
-          where: { ...where, deleted: false },
+          where,
           orderBy: {
             created_at: 'desc'
           },
