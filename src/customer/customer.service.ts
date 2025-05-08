@@ -339,6 +339,7 @@ export class CustomerService {
   getCustomer(key: string) {
     return this.prisma.customer.findMany({
       where: pickBy({
+        deleted: false,
         OR: [
           {
             name: {
