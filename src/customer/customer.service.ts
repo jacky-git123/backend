@@ -175,7 +175,7 @@ export class CustomerService {
         this.prisma.customer.findMany({
           skip,
           take,
-          where,
+          where: { ...where, deleted: false },
           orderBy: {
             created_at: 'desc'
           },
