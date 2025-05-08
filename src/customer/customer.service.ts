@@ -58,9 +58,7 @@ export class CustomerService {
     // if (authUser.role === 'SUPER_ADMIN') {}
   
     // Initialize where clause with deleted_at: null
-    let where: any = {
-      deleted_at: null,
-    };
+    let where: any = {};
   
     // If user has a supervisor, we need to query customers with that supervisor in leadUser array
     if (authUser.supervisor && authUser.supervisor !== 'SUPER_ADMIN') {
@@ -135,7 +133,7 @@ export class CustomerService {
       // Using raw query to handle the JSON array search properly
       const rawQuery = `
         SELECT * FROM "customer"
-        WHERE "deleted_at" IS NULL
+        WHERE "deleted" IS FALSE
         AND EXISTS (
           SELECT FROM jsonb_array_elements("leadUser") AS elem
           WHERE elem->>'lead1' = '${authUser.supervisor}'
@@ -152,7 +150,7 @@ export class CustomerService {
   
       const countQuery = `
         SELECT COUNT(*) FROM "customer"
-        WHERE "deleted_at" IS NULL
+        WHERE "deleted" IS FALSE
         AND EXISTS (
           SELECT FROM jsonb_array_elements("leadUser") AS elem
           WHERE elem->>'lead1' = '${authUser.supervisor}'
@@ -193,23 +191,27 @@ export class CustomerService {
       const onGoingStatusCounts = await this.prisma.loan.count({
         where: {
           status: 'Completed',
+          deleted: false,
           customer_id: customer.id,
         }
       });
       const normalStatusCounts = await this.prisma.loan.count({
         where: {
+          deleted: false,
           status: 'Normal',
           customer_id: customer.id,
         }
       });
       const badDebtStatusCounts = await this.prisma.loan.count({
         where: {
+          deleted: false,
           status: 'Bad Debt',
           customer_id: customer.id,
         }
       });
       const badDebtCompletedStatusCounts = await this.prisma.loan.count({
         where: {
+          deleted: false,
           status: 'Bad Debt Completed',
           customer_id: customer.id,
         }
