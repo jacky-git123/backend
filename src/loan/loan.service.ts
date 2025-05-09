@@ -177,7 +177,7 @@ export class LoanService {
     const paymentData = await this.prisma.payment.create({
       data: {
         type: 'Out',
-        payment_date: createLoanDto.repayment_date,
+        payment_date: createLoanDto.loan_date,
         amount: (Number(createLoanDto.principal_amount)-(Number(createLoanDto.deposit_amount)+Number(createLoanDto.application_fee)))?.toString(),
         balance: (Number(createLoanDto.principal_amount)-(Number(createLoanDto.deposit_amount)))?.toString(),
         account_details: 'Loan Disbursement',
