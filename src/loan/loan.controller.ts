@@ -58,5 +58,10 @@ export class LoanController {
     return this.loanService.getLoanCountByGroups(searchTerm);
   }
 
+  @Get('fixPayment')
+  async fixPayment() {
+    return this.loanService.fixPayment();
+  }
+
 
 }

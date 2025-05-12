@@ -799,4 +799,67 @@ export class LoanService {
       return { data: [] };
     }
   }
+
+  async fixPayment() {
+    const loans = await this.prisma.loan.findMany({
+      where: {
+        deleted: false,
+      },
+      include: {
+        installment: true, // Include related installments
+      },
+    });
+
+    await Promise.all(
+      loans.map(async (loan) => {
+        // Check if initial payment exists
+        const existingPayment = await this.prisma.payment.findFirst({
+          where: {
+            loan_id: loan.id,
+            type: 'Out',
+          },
+        });
+
+        if (!existingPayment) {
+          // Create initial loan disbursement payment
+          const paymentData = await this.prisma.payment.create({
+            data: {
+              type: 'Out',
+              payment_date: loan.loan_date,
+              amount: (Number(loan.principal_amount) - (Number(loan.deposit_amount || '0') + Number(loan.application_fee || '0')))?.toString(),
+              balance: (Number(loan.principal_amount) - Number(loan.deposit_amount || '0'))?.toString(),
+              account_details: 'Loan Disbursement',
+              loan: { connect: { id: loan.id } },
+              created_by: 'c8b7e162-cd42-4c50-8d77-bb9c9b00506e',
+            },
+          });
+
+          // Process installment payments
+          if (loan.installment && loan.installment.length > 0) {
+            const installmentPayments = loan.installment
+              .filter(inst => inst.status === 'Paid' && inst.receiving_date)
+              .map(async (inst) => {
+                // Create payment for each paid installment
+                return this.prisma.payment.create({
+                  data: {
+                    type: 'In',
+                    payment_date: inst.receiving_date,
+                    amount: inst.accepted_amount || inst.due_amount || '0',
+                    account_details: 'Loan Installment Payment',
+                    loan: { connect: { id: loan.id } },
+                    installment: { connect: { id: inst.id } },
+                    created_by: 'c8b7e162-cd42-4c50-8d77-bb9c9b00506e',
+                  },
+                });
+              });
+
+            // Wait for all installment payments to be created
+            await Promise.all(installmentPayments);
+          }
+        }
+      }),
+    );
+
+    return 'Payment fixed successfully';
+  }
 }
