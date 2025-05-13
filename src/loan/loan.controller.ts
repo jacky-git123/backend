@@ -58,7 +58,7 @@ export class LoanController {
     return this.loanService.getLoanCountByGroups(searchTerm);
   }
 
-  @Get('fixPayment')
+  @Get('fixPayment/all')
   async fixPayment() {
     return this.loanService.fixPayment();
   }
