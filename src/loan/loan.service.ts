@@ -917,4 +917,13 @@ export class LoanService {
     return `Payment fixed successfully. Processed ${processedCount} loans.`;
   }
 
+  async updateLoanProfit(loanId: string, actual_profit: string) {
+    return this.prisma.loan.update({
+      where: { id: loanId },
+      data: { actual_profit },
+    });
+  }
+
 }
+
+

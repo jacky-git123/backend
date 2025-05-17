@@ -4,11 +4,13 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { connect } from 'http2';
 import { RunningNumberGenerator } from 'src/common/utils';
+import { LoanService } from 'src/loan/loan.service';
 
 @Injectable()
 export class PaymentService {
     constructor(private prisma: PrismaService,
-      private utilService:RunningNumberGenerator
+      private utilService:RunningNumberGenerator,
+      private loanService: LoanService
     ) {}
 
   async createOrUpdate(paymentDto: any) {
@@ -17,6 +19,7 @@ export class PaymentService {
       .filter(([key]) => !isNaN(Number(key)))
       .map(([, value]) => value as any);
 
+    const loan_id = paymentDto[0].loan_id;
     // Get userid if present
     const userid = paymentDto.userid;
 
@@ -45,6 +48,23 @@ export class PaymentService {
         results.push(newPayment);
       }
     }
+
+    const paymentData = await this.prisma.payment.findMany({
+      where: { loan_id: loan_id }
+    });
+
+    const outPayment = paymentData.find(entry => entry.type === 'Out');
+    const outAmount = outPayment ? parseFloat(outPayment.amount) : 0;
+
+    // Sum all "In" amounts
+    const totalInAmount = paymentData
+    .filter(entry => entry.type === 'In')
+    .reduce((sum, entry) => sum + parseFloat(entry.amount), 0);
+
+    // Calculate the difference
+    const remainingAmount =totalInAmount- outAmount;
+
+    const updateActualProfit = await this.loanService.updateLoanProfit(String(loan_id), String(remainingAmount));
 
     return results;
   }
@@ -174,6 +194,7 @@ export class PaymentService {
       where: { id: existingPayment.id },
       data: paymentData,
     });
+
 
     return updatedPayment;
   }
