@@ -187,6 +187,10 @@ model user {
   status     Boolean? @default(true)
   generate_id      String?   @db.VarChar
   deleted          Boolean? @default(false)
+  login_attempt Int?  @db.Integer
+
+  first_failed_attempt DateTime? @db.Timestamp(6)  // When the first failed attempt in current window occurred
+  locked_until     DateTime? @db.Timestamp(6)      // When the lockout expires
   // Relations: Loans where this user is a supervisor
   supervised_loans_1 loan[] @relation(name: "supervisor1") // Primary supervisor
   supervised_loans_2 loan[] @relation(name: "supervisor2") // Secondary supervisor

@@ -154,14 +154,83 @@ export class UserService {
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.findByEmail(email);
-    if (user && user.password) {
+
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+
+    const now = new Date();
+    const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
+    const ATTEMPT_WINDOW = 5 * 60 * 1000; // 5 minutes window for attempts
+
+
+    if (user.password) {
       const isPasswordValid = await bcrypt.compare(password, user.password);
+
       if (isPasswordValid) {
+        // Successful login - reset all attempt tracking
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            login_attempt: null,
+            first_failed_attempt: null,
+            locked_until: null
+          }
+        });
+
         const { password, ...result } = user;
-        return result; // Exclude password before returning
+        return result;
+      } else {
+        // Failed login - handle attempt tracking with time window
+        const currentAttempts = user.login_attempt || 0;
+        const firstFailedAttempt = user.first_failed_attempt;
+
+        // Check if this is the first failed attempt or if we're within the time window
+        if (!firstFailedAttempt || (now.getTime() - firstFailedAttempt.getTime()) > ATTEMPT_WINDOW) {
+          // Reset the attempt window
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              login_attempt: 1,
+              first_failed_attempt: now
+            }
+          });
+
+          throw new Error('Invalid credentials. 2 attempt(s) remaining before account lockout.');
+        } else {
+          // Within the time window, increment attempts
+          const newAttempts = currentAttempts + 1;
+
+          if (newAttempts > 3) {
+            // Lock the user account
+            const lockUntil = new Date(now.getTime() + LOCKOUT_DURATION);
+
+            await this.prisma.user.update({
+              where: { id: user.id },
+              data: {
+                login_attempt: newAttempts,
+                status: false,
+                // locked_until: lockUntil
+              }
+            });
+
+            throw new Error('Account has been blocked due to 3 unsuccessful login attempts. Please contact Admin.');
+          } else {
+            // Update login attempts count and show warning
+            await this.prisma.user.update({
+              where: { id: user.id },
+              data: { login_attempt: newAttempts }
+            });
+
+            const remainingAttempts = 3 - newAttempts;
+
+            throw new Error(`Invalid credentials. ${remainingAttempts} attempt(s) remaining before account lockout.`);
+          }
+        }
       }
     }
-    return null;
+
+    return null
   }
 
   async findAgentAndLeads(key: string) {

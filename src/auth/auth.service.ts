@@ -12,7 +12,10 @@ export class AuthService {
   ) { }
 
   async validateUser(email: string, password: string): Promise<any> {
-    return this.userService.validateUser(email, password);
+    return this.userService.validateUser(email, password).catch((err) => {
+      console.log('err', err);
+      throw new BadRequestException(err.message);
+    });
   }
 
   async login(user: any) {
