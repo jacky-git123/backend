@@ -161,7 +161,7 @@ export class UserService {
 
     const now = new Date();
     const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
-    const ATTEMPT_WINDOW = 5 * 60 * 1000; // 5 minutes window for attempts
+    const ATTEMPT_WINDOW = 60 * 60 * 1000; // 5 minutes window for attempts
 
 
     if (user.password) {
@@ -201,7 +201,7 @@ export class UserService {
           // Within the time window, increment attempts
           const newAttempts = currentAttempts + 1;
 
-          if (newAttempts > 3) {
+          if (newAttempts >= 3) {
             // Lock the user account
             const lockUntil = new Date(now.getTime() + LOCKOUT_DURATION);
 
