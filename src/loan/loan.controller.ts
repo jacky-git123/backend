@@ -17,9 +17,11 @@ export class LoanController {
   async findAll(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-    @Query('filter') filter: any
+    @Query('filter') filter: any,
+    @Query('userid') userid: any
   ) {
-    return this.loanService.findAll(Number(page), Number(limit), filter);
+    // console.log('userid', userid);
+    return this.loanService.findAll(Number(page), Number(limit), filter, userid);
   }
 
   // @UseGuards(JwtAuthGuard)

@@ -45,7 +45,23 @@ export class LoanService {
     return { ...loadData, getLeadUser }
   }
 
-  async findAll(page: number, limit: number, filter?: string) {
+  async findAll(page: number, limit: number, filter?: string, authUserId?: string) {
+    const authUser = await this.prisma.user.findFirst({
+      where: { id: authUserId },
+      select: {
+        role: true,
+        id: true,
+        supervisor: true,
+      }
+    });
+    console.log(authUser, 'authUser');
+    let supervisorId = null;
+    if (authUser.role === 'AGENT') {
+      supervisorId = authUser.supervisor;
+    } else if (authUser.role === 'LEAD') {
+      supervisorId = authUser.id;
+    }
+
     const skip = (page - 1) * limit;
     // Define the base query parameters
     const queryParams: any = {
@@ -106,6 +122,17 @@ export class LoanService {
       };
     }
     queryParams.where = { ...queryParams.where, deleted: false } // Remove any undefined or null values from the where clause
+
+    queryParams.where = { 
+      ...queryParams.where, 
+      OR: [
+        { created_by: authUserId },
+        { created_by: supervisorId },
+        { supervisor: supervisorId },
+        { supervisor_2: supervisorId },
+      ]
+
+    }
 
     // Execute the query with the constructed parameters
     const data = await this.prisma.loan.findMany(queryParams);
