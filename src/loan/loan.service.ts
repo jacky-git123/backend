@@ -132,7 +132,6 @@ export class LoanService {
           { supervisor: supervisorId },
           { supervisor_2: supervisorId },
         ]
-  
       }
     }
 
