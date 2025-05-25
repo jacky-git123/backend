@@ -27,7 +27,51 @@ export class LoanService {
     return uniqueString;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, authUserId?: string) {
+    const authUser = await this.prisma.user.findFirst({
+      where: { id: authUserId },
+      select: {
+        role: true,
+        id: true,
+        supervisor: true,
+      }
+    });
+    console.log(authUser, 'authUser');
+
+    let supervisorId = null;
+    if (authUser.role === 'AGENT') {
+      supervisorId = authUser.supervisor;
+    } else if (authUser.role === 'LEAD') {
+      supervisorId = authUser.id;
+    }
+
+    // Build where clause with permission filtering
+    let whereClause: any = {
+      generate_id: id,
+      deleted: false
+    };
+
+    // Add permission-based filtering for non-SUPER_ADMIN users
+    if (authUser.role !== 'SUPER_ADMIN') {
+      const permissionConditions = [
+        { created_by: authUserId },
+        { supervisor: authUserId },
+        { supervisor_2: authUserId }
+      ];
+
+      if (supervisorId) {
+        permissionConditions.push(
+          { created_by: supervisorId },
+          { supervisor: supervisorId },
+          { supervisor_2: supervisorId }
+        );
+      }
+
+      whereClause.OR = permissionConditions;
+    }
+
+    console.log('FindOne where clause:', JSON.stringify(whereClause, null, 2));
+
     const loadData = await this.prisma.loan.findFirst({
       include: {
         customer: true,
@@ -37,12 +81,18 @@ export class LoanService {
         user: true,
         user_2: true,
       },
-      where: { generate_id: id },
+      where: whereClause,
     });
+
+    if (!loadData) {
+      return null; // or throw an error if preferred
+    }
+
     const getLeadUser = await this.prisma.user.findFirst({
-      where: { id: loadData.user.supervisor },
-    })
-    return { ...loadData, getLeadUser }
+      where: { id: loadData.user?.supervisor },
+    });
+
+    return { ...loadData, getLeadUser };
   }
 
   async findAll(page: number, limit: number, filter?: string, authUserId?: string) {

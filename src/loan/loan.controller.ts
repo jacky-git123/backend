@@ -9,8 +9,11 @@ export class LoanController {
   constructor(private readonly loanService: LoanService) {}
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.loanService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Query('userid') userid: any
+  ) {
+    return this.loanService.findOne(id, userid);
   }
 
   @Get()
