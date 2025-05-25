@@ -123,15 +123,17 @@ export class LoanService {
     }
     queryParams.where = { ...queryParams.where, deleted: false } // Remove any undefined or null values from the where clause
 
-    queryParams.where = { 
-      ...queryParams.where, 
-      OR: [
-        { created_by: authUserId },
-        { created_by: supervisorId },
-        { supervisor: supervisorId },
-        { supervisor_2: supervisorId },
-      ]
-
+    if (authUser.role !== 'SUPER_ADMIN') {
+      queryParams.where = { 
+        ...queryParams.where, 
+        OR: [
+          { created_by: authUserId },
+          { created_by: supervisorId },
+          { supervisor: supervisorId },
+          { supervisor_2: supervisorId },
+        ]
+  
+      }
     }
 
     // Execute the query with the constructed parameters
