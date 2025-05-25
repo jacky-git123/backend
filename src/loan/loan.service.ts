@@ -55,6 +55,7 @@ export class LoanService {
       }
     });
     console.log(authUser, 'authUser');
+
     let supervisorId = null;
     if (authUser.role === 'AGENT') {
       supervisorId = authUser.supervisor;
@@ -63,12 +64,91 @@ export class LoanService {
     }
 
     const skip = (page - 1) * limit;
-    // Define the base query parameters
+
+    // Build the where clause step by step
+    let whereClause: any = {
+      deleted: false
+    };
+
+    // Add permission-based filtering for non-SUPER_ADMIN users
+    if (authUser.role !== 'SUPER_ADMIN') {
+      const permissionConditions = [
+        { created_by: authUserId },
+        { supervisor: authUserId },
+        { supervisor_2: authUserId }
+      ];
+
+      if (supervisorId) {
+        permissionConditions.push(
+          { created_by: supervisorId },
+          { supervisor: supervisorId },
+          { supervisor_2: supervisorId }
+        );
+      }
+
+      whereClause.OR = permissionConditions;
+    }
+
+    // If there's a search filter, we need to combine it with permission filtering
+    if (filter && filter.trim() !== '') {
+      const searchConditions = [
+        // Search by loan's generate_id
+        { generate_id: { contains: filter, mode: 'insensitive' } },
+        // Search by customer's generate_id, name, ic, or passport
+        {
+          customer: {
+            OR: [
+              { generate_id: { contains: filter, mode: 'insensitive' } },
+              { name: { contains: filter, mode: 'insensitive' } },
+              { ic: { contains: filter, mode: 'insensitive' } },
+              { passport: { contains: filter, mode: 'insensitive' } }
+            ]
+          }
+        },
+        // Search by user's name or generate_id (supervisor 1)
+        {
+          user: {
+            OR: [
+              { name: { contains: filter, mode: 'insensitive' } },
+              { generate_id: { contains: filter, mode: 'insensitive' } }
+            ]
+          }
+        },
+        // Search by user's name or generate_id (supervisor 2)
+        {
+          user_2: {
+            OR: [
+              { name: { contains: filter, mode: 'insensitive' } },
+              { generate_id: { contains: filter, mode: 'insensitive' } }
+            ]
+          }
+        }
+      ];
+
+      if (authUser.role !== 'SUPER_ADMIN') {
+        // For non-SUPER_ADMIN: Must match search criteria AND permission criteria
+        whereClause = {
+          deleted: false,
+          AND: [
+            { OR: searchConditions },
+            { OR: whereClause.OR }
+          ]
+        };
+      } else {
+        // For SUPER_ADMIN: Only search criteria needed
+        whereClause = {
+          deleted: false,
+          OR: searchConditions
+        };
+      }
+    }
+
+    // Define the query parameters
     const queryParams: any = {
       skip,
       take: limit,
       orderBy: {
-        created_at: 'desc' // Add sorting by created_at in descending order
+        created_at: 'desc'
       },
       include: {
         customer: true,
@@ -80,75 +160,26 @@ export class LoanService {
         },
         user: true,
         user_2: true,
-      }
+      },
+      where: whereClause
     };
 
-    // Only add where clause if filter is provided and not empty
-    if (filter && filter.trim() !== '') {
-      queryParams.where = {
-        OR: [
-          // Search by loan's generate_id
-          { generate_id: { contains: filter, mode: 'insensitive' } },
-          // Search by customer's generate_id, name, ic, or passport
-          {
-            customer: {
-              OR: [
-                { generate_id: { contains: filter, mode: 'insensitive' } },
-                { name: { contains: filter, mode: 'insensitive' } },
-                { ic: { contains: filter, mode: 'insensitive' } },
-                { passport: { contains: filter, mode: 'insensitive' } }
-              ]
-            }
-          },
-          // Search by user's name or generate_id (supervisor 1)
-          {
-            user: {
-              OR: [
-                { name: { contains: filter, mode: 'insensitive' } },
-                { generate_id: { contains: filter, mode: 'insensitive' } }
-              ]
-            }
-          },
-          // Search by user's name or generate_id (supervisor 2)
-          {
-            user_2: {
-              OR: [
-                { name: { contains: filter, mode: 'insensitive' } },
-                { generate_id: { contains: filter, mode: 'insensitive' } }
-              ]
-            }
-          }
-        ]
-      };
-    }
-    queryParams.where = { ...queryParams.where, deleted: false } // Remove any undefined or null values from the where clause
-
-    if (authUser.role !== 'SUPER_ADMIN') {
-      queryParams.where = { 
-        ...queryParams.where, 
-        OR: [
-          { created_by: authUserId },
-          { created_by: supervisorId },
-          { supervisor: supervisorId },
-          { supervisor_2: supervisorId },
-        ]
-      }
-    }
+    console.log('Final query where clause:', JSON.stringify(whereClause, null, 2));
 
     // Execute the query with the constructed parameters
     const data = await this.prisma.loan.findMany(queryParams);
+
+    // Fix: Use the same where clause for count to get accurate total
     const total = await this.prisma.loan.count({
-      where: {
-        deleted: false,
-      }
+      where: whereClause
     });
+
     return {
       data,
       total,
       page: page,
       limit: limit,
     };
-
   }
 
   async create(createLoanDto) {
