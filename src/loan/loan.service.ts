@@ -52,7 +52,7 @@ export class LoanService {
     };
 
     // Add permission-based filtering for non-SUPER_ADMIN users
-    if (authUser.role !== 'SUPER_ADMIN') {
+    if (authUser.role !== 'SUPER_ADMIN' && authUser.role !== 'ADMIN') {
       const permissionConditions = [
         { created_by: authUserId },
         { supervisor: authUserId },
