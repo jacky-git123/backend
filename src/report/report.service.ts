@@ -61,6 +61,7 @@ export class ReportService {
                 .find(inst => !inst.status || inst.status == null); 
                 
                 return {
+                    loanData: loan,
                     loanCreatedDate: loan.loan_date,
                     loanId: loan.generate_id,
                     agent: loan.user?.name || '',
