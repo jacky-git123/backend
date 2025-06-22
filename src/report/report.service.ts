@@ -67,15 +67,15 @@ export class ReportService {
                     agent: loan.user?.name || '',
                     customerName: loan.customer?.name || '',
                     customerIc: loan.customer?.ic || '',
-                    loanAmount: 'RM' +parseFloat(loan.principal_amount).toFixed(2) || '0',
-                    payableAmount: 'RM' +parseFloat(loan.payment_per_term).toFixed(2) || '0',
-                    deposit: 'RM' +parseFloat(loan.deposit_amount).toFixed(2) || '0',
-                    out:'RM' + (parseFloat(loan.principal_amount || '0') - parseFloat(loan.deposit_amount || '0')).toFixed(2),
+                    loanAmount: parseFloat(loan.principal_amount).toFixed(2) || '0',
+                    payableAmount: parseFloat(loan.payment_per_term).toFixed(2) || '0',
+                    deposit: parseFloat(loan.deposit_amount).toFixed(2) || '0',
+                    out: (parseFloat(loan.principal_amount || '0') - parseFloat(loan.deposit_amount || '0')).toFixed(2),
                     dueDate: nextDueInstallment?.installment_date || '',
-                    dueAmount: 'RM' + parseFloat(loan.payment_per_term).toFixed(2),
-                    totalAmountReceived: 'RM' + parseFloat(totalAmountReceived).toFixed(2),
-                    estimatedProfit: 'RM' +parseFloat(loan.estimated_profit).toFixed(2) || '0',
-                    actualProfit: 'RM'+parseFloat(loan.actual_profit).toFixed(2) || '0'
+                    dueAmount:  parseFloat(loan.payment_per_term).toFixed(2),
+                    totalAmountReceived:  parseFloat(totalAmountReceived).toFixed(2),
+                    estimatedProfit: parseFloat(loan.estimated_profit).toFixed(2) || '0',
+                    actualProfit: parseFloat(loan.actual_profit).toFixed(2) || '0'
                 };
             });
     
@@ -99,7 +99,7 @@ export class ReportService {
                     loan_date: 'asc'
                 }
             });
-    
+            console.log(paymentData,'pay')
             const formattedData = paymentData.map(loan => {
                 // Format date as dd-mm-yyyy
                 const loanDate = new Date(loan.loan_date);
