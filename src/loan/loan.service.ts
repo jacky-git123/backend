@@ -214,10 +214,21 @@ export class LoanService {
       where: whereClause
     };
 
-    console.log('Final query where clause:', JSON.stringify(whereClause, null, 2));
+    // console.log('Final query where clause:', JSON.stringify(whereClause, null, 2));
 
     // Execute the query with the constructed parameters
     const data = await this.prisma.loan.findMany(queryParams);
+
+
+    const finalData = data.map((loan:any) => {
+      // console.log(loan, 'loan');
+      const nextDueInstallment = loan.installment
+      .filter(inst => inst.installment_date) // remove entries without a date
+      .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
+      .find(inst => !inst.status || inst.status == null); 
+      loan.nextPaymentDate = nextDueInstallment ? nextDueInstallment.installment_date : null;
+      return loan;
+    })
 
     // Fix: Use the same where clause for count to get accurate total
     const total = await this.prisma.loan.count({
@@ -225,7 +236,7 @@ export class LoanService {
     });
 
     return {
-      data,
+      data: finalData,
       total,
       page: page,
       limit: limit,
