@@ -125,6 +125,8 @@ export class ReportService {
                 .filter(inst => inst.installment_date) // remove entries without a date
                 .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
                 .find(inst => !inst.status || inst.status == null); 
+
+                const bankAccount = loan.payment.sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
     
                 // Calculate payment totals
                 const paymentSummary = loan.payment.reduce((acc, payment) => {
@@ -145,7 +147,7 @@ export class ReportService {
                     customerName: loan.customer?.name || '',
                     totalPaymentIn: paymentSummary.totalIn.toFixed(2),
                     totalPaymentOut: paymentSummary.totalOut.toFixed(2),
-                   // bankAgentAccountNo: paymentSummary.account_details || ''
+                   bankAgentAccountNo: bankAccount[0]
                 };
             });
     
