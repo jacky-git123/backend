@@ -91,15 +91,27 @@ export class ReportService {
                     deleted: false,
                 },
                 include: {
+                    installment: true,
                     customer: true,
                     payment: true,
+                    user: {
+                        select: {
+                            name: true
+                        }
+                    },
+                    user_2: {
+                        select: {
+                            name: true
+                        }
+                    }
                     
                 },
                 orderBy: {
                     loan_date: 'asc'
                 }
             });
-            console.log(paymentData,'pay')
+            
+    
             const formattedData = paymentData.map(loan => {
                 // Format date as dd-mm-yyyy
                 const loanDate = new Date(loan.loan_date);
@@ -108,6 +120,11 @@ export class ReportService {
                     (loanDate.getMonth() + 1).toString().padStart(2, '0'),
                     loanDate.getFullYear()
                 ].join('-');
+
+                const nextDueInstallment = loan.installment
+                .filter(inst => inst.installment_date) // remove entries without a date
+                .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
+                .find(inst => !inst.status || inst.status == null); 
     
                 // Calculate payment totals
                 const paymentSummary = loan.payment.reduce((acc, payment) => {
@@ -122,7 +139,9 @@ export class ReportService {
                 return {
                     loanCreatedDate: formattedDate,
                     loanId: loan.generate_id,
-                    //agentName: loan.user?.name || '',
+                    nextDueInstallment,
+                    agentName: loan.user?.name || '',
+                    agentName2: loan.user_2?.name || '',
                     customerName: loan.customer?.name || '',
                     totalPaymentIn: paymentSummary.totalIn.toFixed(2),
                     totalPaymentOut: paymentSummary.totalOut.toFixed(2),
