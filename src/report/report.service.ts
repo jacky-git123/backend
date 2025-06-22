@@ -126,7 +126,7 @@ export class ReportService {
                 .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
                 .find(inst => !inst.status || inst.status == null); 
 
-                const bankAccount = loan.payment.sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
+                const bankAccount = loan.payment.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
     
                 // Calculate payment totals
                 const paymentSummary = loan.payment.reduce((acc, payment) => {
@@ -147,7 +147,7 @@ export class ReportService {
                     customerName: loan.customer?.name || '',
                     totalPaymentIn: paymentSummary.totalIn.toFixed(2),
                     totalPaymentOut: paymentSummary.totalOut.toFixed(2),
-                   bankAgentAccountNo: bankAccount[0]
+                    bankAgentAccountNo: bankAccount[0].account_details || '',
                 };
             });
     
