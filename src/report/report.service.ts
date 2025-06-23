@@ -84,16 +84,19 @@ export class ReportService {
         if (report_type === 'payment') {
             const paymentData = await this.prisma.loan.findMany({
                 where: {
-                    loan_date: {
-                        gte: new Date(loan_data_from).toISOString(),
-                        lte: new Date(loan_data_to).toISOString(),
-                    },
                     deleted: false,
                 },
                 include: {
                     installment: true,
                     customer: true,
-                    payment: true,
+                    payment: {
+                        where: {
+                            payment_date: {
+                                gte: new Date(loan_data_from).toISOString(),
+                                lte: new Date(loan_data_to).toISOString(),
+                            }
+                        },
+                    },
                     user: {
                         select: {
                             name: true
