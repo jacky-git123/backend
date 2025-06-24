@@ -115,16 +115,6 @@ export class ReportService {
                     }
                 });
 
-                // Calculate total payment in and out
-                const totalPaymentIn = loan.payment
-                    .filter(p => p.type === 'In')
-                    .reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0);
-                
-                const totalPaymentOut = loan.payment
-                    .filter(p => p.type === 'Out')
-                    .reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0);
-
-                const bankAccount = loan.payment.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
                 return {
                     paymentType: payment.type,
                     paymntin_out: payment.payment_date,
@@ -132,8 +122,7 @@ export class ReportService {
                     agentName2: loan.user_2?.name || '',
                     loanId: loan.generate_id,
                     customerName: loan.customer?.name || '',
-                    totalPaymentIn,
-                    totalPaymentOut,
+                    amount: payment.amount,
                     bankAgentAccountNo: payment.account_details || '',
                     remarks: payment.remarks || '',
                 };
