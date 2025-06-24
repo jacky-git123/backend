@@ -155,6 +155,7 @@ model payment {
   amount          String?      @db.VarChar
   balance         String?      @db.VarChar
   account_details String?      @db.VarChar
+  remarks         String?      @db.VarChar
   loan_id         String?      @db.Uuid
   
   created_at DateTime @default(now()) @db.Timestamp(6)

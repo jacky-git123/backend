@@ -5,6 +5,7 @@ export class CreatePaymentDto {
   amount: string;
   balance: string;
   account_details: string;
+  remarks?: string;
   generate_id?: string;
 
 }
