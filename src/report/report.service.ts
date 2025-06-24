@@ -82,41 +82,39 @@ export class ReportService {
             return formattedData;
         }
         if (report_type === 'payment') {
-            const paymentData = await this.prisma.loan.findMany({
+            
+            const paymentData = await this.prisma.payment.findMany({
                 where: {
-                    deleted: false,
-                },
-                include: {
-                    installment: true,
-                    customer: true,
-                    payment: {
-                        where: {
-                            payment_date: {
-                                gte: new Date(loan_data_from).toISOString(),
-                                lte: new Date(loan_data_to).toISOString(),
-                            }
-                        },
-                    },
-                    user: {
-                        select: {
-                            name: true
-                        }
-                    },
-                    user_2: {
-                        select: {
-                            name: true
-                        }
+                    payment_date: {
+                        gte: new Date(loan_data_from).toISOString(),
+                        lte: new Date(loan_data_to).toISOString(),
                     }
-                    
                 },
                 orderBy: {
-                    loan_date: 'asc'
+                    payment_date: 'asc'
                 }
             });
-            
-    
-            const formattedData = paymentData.map(loan => {
-                // Format date as dd-mm-yyyy
+
+            const formatPaymentData = Promise.all(paymentData.map(async payment => {
+                const loan = await this.prisma.loan.findUnique({
+                    where: { id: payment.loan_id },
+                    include: {
+                        customer: true,
+                        installment: true,
+                        payment: true,
+                        user: {
+                            select: {
+                                name: true
+                            }
+                        },
+                        user_2: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                });
+
                 const loanDate = new Date(loan.loan_date);
                 const formattedDate = [
                     loanDate.getDate().toString().padStart(2, '0'),
@@ -130,31 +128,59 @@ export class ReportService {
                 .find(inst => !inst.status || inst.status == null); 
 
                 const bankAccount = loan.payment.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
-    
-                // Calculate payment totals
-                const paymentSummary = loan.payment.reduce((acc, payment) => {
-                    if (payment.type === 'In') {
-                        acc.totalIn += parseFloat(payment.amount || '0');
-                    } else if (payment.type === 'Out') {
-                        acc.totalOut += parseFloat(payment.amount || '0');
-                    }
-                    return acc;
-                }, { totalIn: 0, totalOut: 0 });
-    
+
                 return {
-                    loanCreatedDate: formattedDate,
-                    loanId: loan.generate_id,
+                    loan,
+                    formattedDate,
                     nextDueInstallment,
                     agentName: loan.user?.name || '',
                     agentName2: loan.user_2?.name || '',
                     customerName: loan.customer?.name || '',
-                    totalPaymentIn: paymentSummary.totalIn.toFixed(2),
-                    totalPaymentOut: paymentSummary.totalOut.toFixed(2),
-                    bankAgentAccountNo: bankAccount[0].account_details || '',
+                    bankAccount: bankAccount[0].account_details || '',
                 };
-            });
+            }));
+            
     
-            return formattedData;
+            // const formattedData = paymentData.map(loan => {
+            //     // Format date as dd-mm-yyyy
+            //     // const loanDate = new Date(loan.loan_date);
+            //     // const formattedDate = [
+            //     //     loanDate.getDate().toString().padStart(2, '0'),
+            //     //     (loanDate.getMonth() + 1).toString().padStart(2, '0'),
+            //     //     loanDate.getFullYear()
+            //     // ].join('-');
+
+            //     // const nextDueInstallment = loan.installment
+            //     // .filter(inst => inst.installment_date) // remove entries without a date
+            //     // .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
+            //     // .find(inst => !inst.status || inst.status == null); 
+
+            //     // const bankAccount = loan.payment.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
+    
+            //     // Calculate payment totals
+            //     // const paymentSummary = loan.payment.reduce((acc, payment) => {
+            //     //     if (payment.type === 'In') {
+            //     //         acc.totalIn += parseFloat(payment.amount || '0');
+            //     //     } else if (payment.type === 'Out') {
+            //     //         acc.totalOut += parseFloat(payment.amount || '0');
+            //     //     }
+            //     //     return acc;
+            //     // }, { totalIn: 0, totalOut: 0 });
+    
+            //     return {
+            //         loanCreatedDate: formattedDate,
+            //         loanId: loan.generate_id,
+            //         nextDueInstallment,
+            //         agentName: loan.user?.name || '',
+            //         agentName2: loan.user_2?.name || '',
+            //         customerName: loan.customer?.name || '',
+            //         totalPaymentIn: paymentSummary.totalIn.toFixed(2),
+            //         totalPaymentOut: paymentSummary.totalOut.toFixed(2),
+            //         bankAgentAccountNo: bankAccount[0].account_details || '',
+            //     };
+            // });
+    
+            return formatPaymentData;
         }
         return [];
     }
