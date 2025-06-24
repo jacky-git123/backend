@@ -126,7 +126,7 @@ export class ReportService {
 
                 const bankAccount = loan.payment.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
                 return {
-                    // loanDate: payment.payment_date,
+                    paymentType: payment.type,
                     paymntin_out: payment.payment_date,
                     agentName: loan.user?.name || '',
                     agentName2: loan.user_2?.name || '',
