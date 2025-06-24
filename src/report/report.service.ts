@@ -134,7 +134,7 @@ export class ReportService {
                     customerName: loan.customer?.name || '',
                     totalPaymentIn,
                     totalPaymentOut,
-                    bankAgentAccountNo: bankAccount[0].account_details || '',
+                    bankAgentAccountNo: payment.account_details || '',
                     remarks: payment.remarks || '',
                 };
             }));
