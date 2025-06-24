@@ -115,70 +115,30 @@ export class ReportService {
                     }
                 });
 
-                const loanDate = new Date(loan.loan_date);
-                const formattedDate = [
-                    loanDate.getDate().toString().padStart(2, '0'),
-                    (loanDate.getMonth() + 1).toString().padStart(2, '0'),
-                    loanDate.getFullYear()
-                ].join('-');
-
-                const nextDueInstallment = loan.installment
-                .filter(inst => inst.installment_date) // remove entries without a date
-                .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
-                .find(inst => !inst.status || inst.status == null); 
+                // Calculate total payment in and out
+                const totalPaymentIn = loan.payment
+                    .filter(p => p.type === 'In')
+                    .reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0);
+                
+                const totalPaymentOut = loan.payment
+                    .filter(p => p.type === 'Out')
+                    .reduce((sum, p) => sum + parseFloat(p.amount || '0'), 0);
 
                 const bankAccount = loan.payment.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
-
                 return {
-                    loan,
-                    formattedDate,
-                    nextDueInstallment,
+                    loanDate: payment.payment_date,
+                    paymntin_out: payment.type,
                     agentName: loan.user?.name || '',
                     agentName2: loan.user_2?.name || '',
+                    loanId: loan.generate_id,
                     customerName: loan.customer?.name || '',
-                    bankAccount: bankAccount[0].account_details || '',
+                    totalPaymentIn,
+                    totalPaymentOut,
+                    bankAgentAccountNo: bankAccount[0].account_details || '',
+                    remarks: payment.remarks || '',
                 };
             }));
             
-    
-            // const formattedData = paymentData.map(loan => {
-            //     // Format date as dd-mm-yyyy
-            //     // const loanDate = new Date(loan.loan_date);
-            //     // const formattedDate = [
-            //     //     loanDate.getDate().toString().padStart(2, '0'),
-            //     //     (loanDate.getMonth() + 1).toString().padStart(2, '0'),
-            //     //     loanDate.getFullYear()
-            //     // ].join('-');
-
-            //     // const nextDueInstallment = loan.installment
-            //     // .filter(inst => inst.installment_date) // remove entries without a date
-            //     // .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
-            //     // .find(inst => !inst.status || inst.status == null); 
-
-            //     // const bankAccount = loan.payment.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
-    
-            //     // Calculate payment totals
-            //     // const paymentSummary = loan.payment.reduce((acc, payment) => {
-            //     //     if (payment.type === 'In') {
-            //     //         acc.totalIn += parseFloat(payment.amount || '0');
-            //     //     } else if (payment.type === 'Out') {
-            //     //         acc.totalOut += parseFloat(payment.amount || '0');
-            //     //     }
-            //     //     return acc;
-            //     // }, { totalIn: 0, totalOut: 0 });
-    
-            //     return {
-            //         loanCreatedDate: formattedDate,
-            //         loanId: loan.generate_id,
-            //         nextDueInstallment,
-            //         agentName: loan.user?.name || '',
-            //         agentName2: loan.user_2?.name || '',
-            //         customerName: loan.customer?.name || '',
-            //         totalPaymentIn: paymentSummary.totalIn.toFixed(2),
-            //         totalPaymentOut: paymentSummary.totalOut.toFixed(2),
-            //         bankAgentAccountNo: bankAccount[0].account_details || '',
-            //     };
-            // });
     
             return formatPaymentData;
         }
