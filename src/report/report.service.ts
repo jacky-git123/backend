@@ -122,7 +122,8 @@ export class ReportService {
                     agentName2: loan.user_2?.name || '',
                     loanId: loan.generate_id,
                     customerName: loan.customer?.name || '',
-                    amount: payment.amount,
+                    totalPaymentIn: payment.type === 'In' ? payment.amount : '',
+                    totalPaymentOut: payment.type === 'Out' ? payment.amount : '',
                     bankAgentAccountNo: payment.account_details || '',
                     remarks: payment.remarks || '',
                 };
