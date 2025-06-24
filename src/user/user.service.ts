@@ -138,7 +138,7 @@ export class UserService {
   async createUser(payload): Promise<any> {
     const hashedPassword = await bcrypt.hash(payload.password, 10);
     const generate_id = await this.utilService.generateUniqueNumber('US');
-    console.log(generate_id,'gen')
+    
     return this.prisma.user.create({
       data: {
         generate_id:generate_id,

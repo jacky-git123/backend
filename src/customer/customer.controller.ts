@@ -12,7 +12,7 @@ export class CustomerController {
   // @UseGuards(AuthGuard)
   @Post()
   async create(@Body() createCustomerDto: CreateCustomerDto, @Headers() headers: any) {
-    console.log(headers);
+
     if (headers.auth_user) {
       createCustomerDto.created_by = headers.user_id;
       createCustomerDto.updated_by = headers.user_id;

@@ -23,7 +23,7 @@ export class LoanController {
     @Query('filter') filter: any,
     @Query('userid') userid: any
   ) {
-    // console.log('userid', userid);
+    
     return this.loanService.findAll(Number(page), Number(limit), filter, userid);
   }
 

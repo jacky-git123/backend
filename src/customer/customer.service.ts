@@ -36,7 +36,7 @@ export class CustomerService {
       }
     }
 
-    // console.log(data);
+    
     const { bankDetails, ...customerData } = data;
     if(customerData.id) {
       return this.updateCustomer(customerData, customerData.id);
@@ -54,10 +54,7 @@ export class CustomerService {
         id: authUserId,
       }
     });
-    // console.log('authUser', authUser);
-    // if (authUser.role === 'SUPER_ADMIN') {}
-  
-    // Initialize where clause with deleted_at: null
+   
     let where: any = {};
   
     // If user has a supervisor, we need to query customers with that supervisor in leadUser array
@@ -122,10 +119,10 @@ export class CustomerService {
       });
     }
   
-    console.log('where');
+    
     where = { ...where, deleted: false }
-    console.log(where);
-    console.log('where');
+    
+    
   
     // If Prisma's JSON filtering isn't working for the array, use a raw query approach
     let customers, total;

@@ -36,7 +36,7 @@ export class LoanService {
         supervisor: true,
       }
     });
-    console.log(authUser, 'authUser');
+    
 
     let supervisorId = null;
     if (authUser.role === 'AGENT') {
@@ -70,7 +70,7 @@ export class LoanService {
       whereClause.OR = permissionConditions;
     }
 
-    console.log('FindOne where clause:', JSON.stringify(whereClause, null, 2));
+    
 
     const loadData = await this.prisma.loan.findFirst({
       include: {
@@ -104,7 +104,7 @@ export class LoanService {
         supervisor: true,
       }
     });
-    console.log(authUser, 'authUser');
+    
 
     let supervisorId = null;
     if (authUser.role === 'AGENT') {
@@ -214,14 +214,14 @@ export class LoanService {
       where: whereClause
     };
 
-    // console.log('Final query where clause:', JSON.stringify(whereClause, null, 2));
+    
 
     // Execute the query with the constructed parameters
     const data = await this.prisma.loan.findMany(queryParams);
 
 
     const finalData = data.map((loan:any) => {
-      // console.log(loan, 'loan');
+      
       const nextDueInstallment = loan.installment
       .filter(inst => inst.installment_date) // remove entries without a date
       .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
@@ -245,7 +245,7 @@ export class LoanService {
 
   async create(createLoanDto) {
     const generateId = await this.utilService.generateUniqueNumber('LN');
-    console.log(generateId, 'generatedid');
+    
     // const calculateRepaymentDates = await this.calculateRepaymentDates(createLoanDto.repayment_date, createLoanDto.repayment_term, createLoanDto.unit_of_date);
     const calculateRepaymentDates = await this.getInstallmentDates(
       createLoanDto.repayment_date,
@@ -356,7 +356,7 @@ export class LoanService {
     if (installments.length > 0) {
       await Promise.all(
         installments.map(async (installment) => {
-          // console.log(installment, 'installments');
+          
           installment.updated_by = authUserId;
           if (installment.id) {
             await this.prisma.installment.update({
@@ -461,7 +461,7 @@ export class LoanService {
       repaymentTerm,
       unitPeriod,
     );
-    console.log(repaymentDates.map((date) => date.toDateString()));
+ 
   }
 
   calculateRepaymentDates(startDate: Date, term: number, unit: any): Date[] {
@@ -633,9 +633,8 @@ export class LoanService {
         customer.badDebtStatusCounts = counts.badDebtStatusCounts;
         customer.badDebtCompletedStatusCounts = counts.badDebtCompletedStatusCounts;
       });
-      console.log('customerscustomerscustomerscustomerscustomers');
-      console.log(customers);
-      console.log('customerscustomerscustomerscustomerscustomerscustomers');
+    
+     
       return customers;
     } catch (err) {
       console.error('Database Error:', err);
@@ -913,7 +912,7 @@ export class LoanService {
         ORDER BY i.installment_date DESC
       `;
 
-      console.log('customersWithMatchingLoans', customersWithMatchingLoans);
+      
 
       return { data: customersWithMatchingLoans || [] };
     } catch (error) {
@@ -1028,7 +1027,7 @@ export class LoanService {
       }
 
       totalProcessed += loans.length;
-      console.log(`Processed ${totalProcessed}/${totalLoans} loans`);
+      
 
       // Add delay between batches to reduce database pressure
       await new Promise(resolve => setTimeout(resolve, 500));

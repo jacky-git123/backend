@@ -18,8 +18,6 @@ constructor(private authService: AuthService) {}
   // @UseGuards(AuthGuard)
   @Put('change-password')
   async changePassword(@Headers() headers, @Body() changePasswordDto: ChangePasswordDto) {
-    console.log(headers)
-    console.log('changePasswordDto.userid', changePasswordDto.userid)
     await this.authService.changePassword(changePasswordDto.userid, changePasswordDto);
     return { message: 'Password changed successfully' };
   }
