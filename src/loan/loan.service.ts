@@ -784,7 +784,7 @@ export class LoanService {
       }
 
       customerInstallmentDates.set(customerId, {
-        upcoming_installment_date: format(upcomingDate, 'yyyy-MM-dd'),
+        upcoming_installment_date: upcomingDate ? format(upcomingDate, 'yyyy-MM-dd') : null,
         last_installment_date: format(lastDate, 'yyyy-MM-dd'),
       });
     }
