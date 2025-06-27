@@ -21,17 +21,9 @@ export class ExpensesService {
 		});
 	}
 
-	async createExpense(createExpenseDto: CreateExpenseDto) {
-    const currentYear = new Date().getFullYear().toString();
-    
-    // If year is not provided, use current year
-    const expenseData = {
-      ...createExpenseDto,
-      year: createExpenseDto.year || currentYear,
-    };
-
-    return this.prisma.expenses.create({
-      data: expenseData,
-    });
-  }
+	async createExpense(createExpenseDto: CreateExpenseDto[]) {
+		return this.prisma.expenses.createMany({
+			data: createExpenseDto,
+		});
+	}
 }

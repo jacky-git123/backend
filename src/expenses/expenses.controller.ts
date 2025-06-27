@@ -28,23 +28,23 @@ export class ExpensesController {
 	}
 
 	@Post()
-  async createExpense(@Body() createExpenseDto: CreateExpenseDto) {
-    try {
-      const newExpense = await this.expensesService.createExpense(createExpenseDto);
-      return {
-        success: true,
-        data: newExpense,
-        message: 'Expense created successfully',
-      };
-    } catch (error) {
-      throw new HttpException(
-        {
-          success: false,
-          message: 'Failed to create expense',
-          error: error.message,
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
+	async createExpense(@Body() createExpenseDto: CreateExpenseDto[]) {
+		try {
+			const newExpense = await this.expensesService.createExpense(createExpenseDto);
+			return {
+				success: true,
+				data: newExpense,
+				message: 'Expense created successfully',
+			};
+		} catch (error) {
+			throw new HttpException(
+				{
+					success: false,
+					message: 'Failed to create expense',
+					error: error.message,
+				},
+				HttpStatus.BAD_REQUEST,
+			);
+		}
+	}
 }
