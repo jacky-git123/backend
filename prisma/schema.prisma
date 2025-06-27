@@ -78,9 +78,11 @@ model document {
 model installment {
   id               String    @id(map: "installment_pk") @default(uuid()) @db.Uuid
   generate_id      String?   @db.VarChar
-  installment_date String?   @db.VarChar
+  installment_date DateTime? @db.Date
+  installment_date_old String?   @db.VarChar
   due_amount       String?   @db.VarChar
-  receiving_date   String?   @db.VarChar
+  receiving_date   DateTime? @db.Date
+  receiving_date_old   String?   @db.VarChar
   status           String?   @db.VarChar
   loan_id          String?   @db.Uuid
   accepted_amount  String?   @db.VarChar
@@ -99,8 +101,10 @@ model installment {
 model loan {
   id               String        @id(map: "loan_pk") @default(uuid()) @db.Uuid
   customer_id      String?       @db.Uuid
-  repayment_date   String?       @db.VarChar
-  loan_date        String?       @db.VarChar
+  repayment_date   DateTime?     @db.Date
+  repayment_date_old   String?   @db.VarChar
+  loan_date        DateTime?     @db.Date
+  loan_date_old        String?   @db.VarChar
   principal_amount String?       @db.VarChar
   deposit_amount   String?       @db.VarChar
   application_fee  String?       @db.VarChar
@@ -150,8 +154,10 @@ model payment {
   id              String       @id(map: "payment_pk") @default(uuid()) @db.Uuid
   type            String?      @db.VarChar
   installment_id  String?      @db.Uuid
-  payment_date    String?      @db.VarChar
-  installment_date    String?      @db.VarChar
+  payment_date    DateTime?    @db.Date
+  payment_date_old    String?   @db.VarChar
+  installment_date   DateTime? @db.Date
+  installment_date_oly   String?   @db.VarChar
   amount          String?      @db.VarChar
   balance         String?      @db.VarChar
   account_details String?      @db.VarChar
@@ -213,3 +219,27 @@ model Tracker {
   @@unique([category, year]) // Ensure one record per category, year, and month
 }
 
+model expenses {
+  id         String   @id @default(uuid()) @db.Uuid
+  user_id    String?  @db.Uuid
+  year       String?  @db.VarChar(255)
+  jan        String?  @db.VarChar(255)
+  feb        String?  @db.VarChar(255)
+  mar        String?  @db.VarChar(255)
+  apr        String?  @db.VarChar(255)
+  may        String?  @db.VarChar(255)
+  jun        String?  @db.VarChar(255)
+  jul        String?  @db.VarChar(255)
+  aug        String?  @db.VarChar(255)
+  sep        String?  @db.VarChar(255)
+  oct        String?  @db.VarChar(255)
+  nov        String?  @db.VarChar(255)
+  dec        String?  @db.VarChar(255)
+  deleted          Boolean? @default(false)
+
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
+
+  created_by       String?    @db.Uuid
+  updated_by       String?    @db.Uuid
+}

@@ -11,6 +11,7 @@ import { AuthModule } from './auth/auth.module';
 import { LoanModule } from './loan/loan.module';
 import { PaymentModule } from './payment/payment.module';
 import { ReportModule } from './report/report.module';
+import { ExpensesModule } from './expenses/expenses.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ReportModule } from './report/report.module';
     LoanModule,
     PaymentModule,
     ReportModule,
+    ExpensesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
