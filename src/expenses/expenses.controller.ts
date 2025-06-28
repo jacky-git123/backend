@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Post, Query } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/expenses.dto';
 
@@ -7,9 +7,11 @@ export class ExpensesController {
 	constructor(private readonly expensesService: ExpensesService) { }
 
 	@Get('current-year')
-	async getAllExpensesByCurrentYear() {
+	async getAllExpensesByCurrentYear(
+		@Query('agent_id') agent_id: string,
+	) {
 		try {
-			const expenses = await this.expensesService.getAllExpensesByCurrentYear();
+			const expenses = await this.expensesService.getAllExpensesByCurrentYear(agent_id);
 			return {
 				success: true,
 				data: expenses,
