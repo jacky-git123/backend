@@ -7,14 +7,14 @@ export class ExpensesService {
 	constructor(private prisma: PrismaService,
 	) { }
 
-	async getAllExpensesByCurrentYear(agent_id: string) {
+	async getAllExpensesByCurrentYear(agent_id: string[]) {
 		const currentYear = new Date().getFullYear().toString();
 
 		return this.prisma.expenses.findMany({
 			where: {
 				year: currentYear,
 				deleted: false,
-				user_id: agent_id,
+				user_id: { in: agent_id },
 			},
 			orderBy: {
 				created_at: 'desc',

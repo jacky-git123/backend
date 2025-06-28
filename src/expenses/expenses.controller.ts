@@ -8,7 +8,7 @@ export class ExpensesController {
 
 	@Get('current-year')
 	async getAllExpensesByCurrentYear(
-		@Query('agent_id') agent_id: string,
+		@Query('agent_id') agent_id: string[],
 	) {
 		try {
 			const expenses = await this.expensesService.getAllExpensesByCurrentYear(agent_id);
