@@ -7,24 +7,40 @@ export class ExpensesService {
 	constructor(private prisma: PrismaService,
 	) { }
 
-	async getAllExpensesByCurrentYear(agent_id: string[]) {
-		const currentYear = new Date().getFullYear().toString();
-
+	async getAllExpensesByYear(agent_id: string[], year: string) {
 		return this.prisma.expenses.findMany({
-			where: {
-				year: currentYear,
-				deleted: false,
-				user_id: { in: agent_id },
-			},
-			orderBy: {
-				created_at: 'desc',
-			},
+		  where: {
+			year,
+			deleted: false,
+			user_id: { in: agent_id },
+		  },
+		  orderBy: {
+			created_at: 'desc',
+		  },
 		});
-	}
+	  }
+	  
 
-	async createExpense(createExpenseDto: CreateExpenseDto[]) {
-		return this.prisma.expenses.createMany({
-			data: createExpenseDto,
+	  async findByUserIdAndYear(userId: string, year: string) {
+		return this.prisma.expenses.findFirst({
+		  where: {
+			user_id: userId,
+			year: year,
+		  },
 		});
-	}
+	  }
+	  
+	  async createExpense(createExpenseDto: CreateExpenseDto) {
+		return this.prisma.expenses.create({
+		  data: createExpenseDto,
+		});
+	  }
+	  
+	  async updateExpense(id: string, updateExpenseDto: CreateExpenseDto) {
+		return this.prisma.expenses.update({
+		  where: { id },
+		  data: updateExpenseDto,
+		});
+	  }
+	  
 }
