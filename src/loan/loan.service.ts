@@ -1044,8 +1044,25 @@ export class LoanService {
   }
 
   async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string) {
+    type LoanWithFlag = Awaited<ReturnType<typeof this.prisma.loan.findMany>>[number] & {
+      hasOtherLoanPaymentInPeriod?: boolean;
+      installment: Array<{
+        id: string;
+        installment_date: any;
+        due_amount?: string;
+        status?: string | null;
+        [key: string]: any;
+      }>;
+      nextInstallmentDate?: string | null;
+      nextInstallmentAmount?: string | null;
+    };
+
     const loans = await this.prisma.loan.findMany({
       where: {
+        loan_date : {
+          gte: fromDate ? new Date(fromDate) : undefined,
+          lte: toDate ? new Date(toDate) : undefined,
+        },
         OR: [
           { created_by: {in: agents} },
           { supervisor: {in: agents} },
@@ -1056,15 +1073,59 @@ export class LoanService {
       include: {
         customer: true,
         installment: true,
-        payment: true,
-        loan_share: true,
-        user: true,
-        user_2: true,
       },
       orderBy: {
         created_at: 'desc',
       },
-    });
+    }) as LoanWithFlag[];
+
+    for (const loan of loans) {
+      if (!loan.customer_id) continue;
+
+      // Find all other loans for this customer (excluding the current loan)
+      const otherLoans = await this.prisma.loan.findMany({
+        where: {
+          customer_id: loan.customer_id,
+          id: { not: loan.id },
+          deleted: false,
+        },
+        select: { id: true }
+      });
+
+      if (otherLoans.length === 0) {
+        loan.hasOtherLoanPaymentInPeriod = false;
+        continue;
+      }
+
+      // Get all payments for these other loans within the date range
+      const otherLoanIds = otherLoans.map(l => l.id);
+      const payments = await this.prisma.payment.findMany({
+        where: {
+          loan_id: { in: otherLoanIds },
+          payment_date: {
+            gte: fromDate,
+            lte: toDate,
+          },
+          type: 'In',
+        },
+        select: { id: true }
+      });
+
+      if (payments.length > 0) {
+        // Find the next unpaid installment for the current loan
+        const nextInstallment = loan.installment
+          .filter(inst => !inst.status || inst.status === null || inst.status === 'Pending')
+          .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())[0];
+
+        loan.nextInstallmentDate = nextInstallment ? nextInstallment.installment_date : null;
+        loan.nextInstallmentAmount = nextInstallment ? nextInstallment.due_amount : null;
+      } else {
+        loan.nextInstallmentDate = null;
+        loan.nextInstallmentAmount = null;
+      }
+
+      loan.hasOtherLoanPaymentInPeriod = payments.length > 0;
+    }
 
     return loans;
   }
