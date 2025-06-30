@@ -68,5 +68,15 @@ export class LoanController {
     return this.loanService.fixPayment();
   }
 
+  @Post('getLoanCheck')
+  async getLoanCheck(
+    @Body('agents') agents: string[] | undefined,
+    @Body('fromDate') fromDate: string | undefined,
+    @Body('toDate') toDate: string | undefined,
+    @Body('userid') userid: string | undefined,
+  ) {
+    return this.loanService.getLoanChecksByAgent(agents, fromDate, toDate, userid);
+  }
+
 
 }

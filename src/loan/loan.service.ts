@@ -1043,6 +1043,31 @@ export class LoanService {
     });
   }
 
+  async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string) {
+    const loans = await this.prisma.loan.findMany({
+      where: {
+        OR: [
+          { created_by: {in: agents} },
+          { supervisor: {in: agents} },
+          { supervisor_2: {in: agents} }
+        ],
+        deleted: false,
+      },
+      include: {
+        customer: true,
+        installment: true,
+        payment: true,
+        loan_share: true,
+        user: true,
+        user_2: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    return loans;
+  }
 }
 
 
