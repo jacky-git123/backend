@@ -1114,7 +1114,7 @@ export class LoanService {
 
       if (otherLoans.length === 0) {
         loan.hasOtherLoanPaymentInPeriod = false;
-        continue;
+        // continue;
       }
 
       // Get all payments for these other loans within the date range
@@ -1148,6 +1148,8 @@ export class LoanService {
         .find(inst => !inst.status || inst.status === null || inst.status.toLowerCase() === 'unpaid');
 
       loan.hasOtherLoanPaymentInPeriod = payments.length > 0;
+      loan.nextInstallmentDate = nextInstallment ? nextInstallment.installment_date : null;
+      loan.nextInstallmentAmount = nextInstallment ? nextInstallment.due_amount : null;
     }
 
     // Only return the required fields for each loan
