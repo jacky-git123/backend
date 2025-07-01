@@ -1068,7 +1068,7 @@ export class LoanService {
 
     const loans = await this.prisma.loan.findMany({
       skip: (page - 1) * 10,
-      take: 3,
+      take: 10,
       where: {
         loan_date : {
           gte: fromDate ? new Date(fromDate) : undefined,
