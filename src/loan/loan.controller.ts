@@ -30,6 +30,10 @@ export class LoanController {
   // @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() createLoanDto: CreateLoanDto) {
+    if (createLoanDto.supervisor === '' && createLoanDto.supervisor_2 && createLoanDto.supervisor_2 !== '') {
+      createLoanDto.supervisor = createLoanDto.supervisor_2;
+      delete createLoanDto.supervisor_2;
+    }
     return this.loanService.create(createLoanDto);
   }
 

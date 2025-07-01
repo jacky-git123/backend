@@ -245,69 +245,73 @@ export class LoanService {
 
   async create(createLoanDto) {
     const generateId = await this.utilService.generateUniqueNumber('LN');
-    
-    // const calculateRepaymentDates = await this.calculateRepaymentDates(createLoanDto.repayment_date, createLoanDto.repayment_term, createLoanDto.unit_of_date);
     const calculateRepaymentDates = await this.getInstallmentDates(
       createLoanDto.repayment_date,
       createLoanDto.unit_of_date,
       createLoanDto.date_period,
       createLoanDto.repayment_term,
     );
-    const loadData = await this.prisma.loan.create({
-      data: {
-        generate_id: generateId,
-        customer: { connect: { id: createLoanDto.customer_id } },
-        user: { connect: { id: createLoanDto.supervisor } },
-        ...(createLoanDto.supervisor_2 && { user_2: { connect: { id: createLoanDto.supervisor_2 } } }),
-        principal_amount: createLoanDto.principal_amount.toString(),
-        deposit_amount: createLoanDto.deposit_amount.toString(),
-        application_fee: createLoanDto.application_fee.toString(),
-        unit_of_date: createLoanDto.unit_of_date.toString(),
-        date_period: createLoanDto.date_period.toString(),
-        repayment_term: createLoanDto.repayment_term.toString(),
-        interest: createLoanDto.interest.toString(),
-        repayment_date: createLoanDto.repayment_date.toString(),
-        loan_remark: createLoanDto.loan_remark.toString(),
-        status: createLoanDto.status,
-        amount_given: createLoanDto.amount_given?.toString(),
-        interest_amount: createLoanDto.interest_amount?.toString(),
-        payment_per_term: createLoanDto.payment_per_term?.toString(),
-        actual_profit: createLoanDto.actual_profit?.toString(),
-        estimated_profit: createLoanDto.estimated_profit?.toString(),
-        loan_date: createLoanDto.loan_date,
-        created_by: createLoanDto.userid,
-        updated_by: createLoanDto.userid
-      },
-    });
+    createLoanDto.loan_date = format(createLoanDto.loan_date, 'yyyy-MM-dd');
 
-    const installmentData = await Promise.all(
-      calculateRepaymentDates.map(async (date, index) => {
-        const generateId = await this.utilService.generateUniqueNumber('IN');
-        await this.prisma.installment.create({
-          data: {
-            generate_id: generateId,
-            installment_date: format(date, 'yyyy-MM-dd'),
-            loan: { connect: { id: loadData.id } },
-            created_by: createLoanDto.userid,
-          },
-        });
-      }),
-    );
+    return this.prisma.$transaction(async (prisma) => {
+      const loadData = await prisma.loan.create({
+        data: {
+          generate_id: generateId,
+          customer: { connect: { id: createLoanDto.customer_id } },
+          user: { connect: { id: createLoanDto.supervisor } },
+          ...(createLoanDto.supervisor_2 && { user_2: { connect: { id: createLoanDto.supervisor_2 } } }),
+          principal_amount: createLoanDto.principal_amount.toString(),
+          deposit_amount: createLoanDto.deposit_amount.toString(),
+          application_fee: createLoanDto.application_fee.toString(),
+          unit_of_date: createLoanDto.unit_of_date.toString(),
+          date_period: createLoanDto.date_period.toString(),
+          repayment_term: createLoanDto.repayment_term.toString(),
+          interest: createLoanDto.interest.toString(),
+          repayment_date: createLoanDto.repayment_date.toString(),
+          loan_remark: createLoanDto.loan_remark.toString(),
+          status: createLoanDto.status,
+          amount_given: createLoanDto.amount_given?.toString(),
+          interest_amount: createLoanDto.interest_amount?.toString(),
+          payment_per_term: createLoanDto.payment_per_term?.toString(),
+          actual_profit: createLoanDto.actual_profit?.toString(),
+          estimated_profit: createLoanDto.estimated_profit?.toString(),
+          loan_date: new Date(createLoanDto.loan_date + 'T00:00:00+08:00'),
+          created_by: createLoanDto.userid,
+          updated_by: createLoanDto.userid
+        },
+      });
 
-    const paymentgenerateId = await this.utilService.generateUniqueNumber('PM');
-    const paymentData = await this.prisma.payment.create({
-      data: {
-        generate_id: paymentgenerateId,
-        type: 'Out',
-        payment_date: createLoanDto.loan_date,
-        amount: (Number(createLoanDto.principal_amount) - (Number(createLoanDto.deposit_amount) + Number(createLoanDto.application_fee)))?.toString(),
-        balance: (Number(createLoanDto.principal_amount) - (Number(createLoanDto.deposit_amount)))?.toString(),
-        account_details: 'Loan Disbursement',
-        loan: { connect: { id: loadData.id } },
-        created_by: createLoanDto.userid,
-      },
+      await Promise.all(
+        calculateRepaymentDates.map(async (date, index) => {
+          const installmentGenerateId = await this.utilService.generateUniqueNumber('IN');
+          const malaysiaDate = new Date(date + 'T00:00:00+08:00');
+          await prisma.installment.create({
+            data: {
+              generate_id: installmentGenerateId,
+              installment_date: malaysiaDate, // Convert to ISO string
+              loan: { connect: { id: loadData.id } },
+              created_by: createLoanDto.userid,
+            },
+          });
+        }),
+      );
+
+      const paymentgenerateId = await this.utilService.generateUniqueNumber('PM');
+      await prisma.payment.create({
+        data: {
+          generate_id: paymentgenerateId,
+          type: 'Out',
+          payment_date: new Date(createLoanDto.loan_date + 'T00:00:00+08:00'),
+          amount: (Number(createLoanDto.principal_amount) - (Number(createLoanDto.deposit_amount) + Number(createLoanDto.application_fee)))?.toString(),
+          balance: (Number(createLoanDto.principal_amount) - (Number(createLoanDto.deposit_amount)))?.toString(),
+          account_details: 'Loan Disbursement',
+          loan: { connect: { id: loadData.id } },
+          created_by: createLoanDto.userid,
+        },
+      });
+
+      return loadData;
     });
-    return loadData;
   }
 
   async update(id: string, updateLoanDto: UpdateLoanDto) {
@@ -520,7 +524,11 @@ export class LoanService {
           throw new Error('Invalid period type');
       }
     }
-
+    
+    for (let i = 0; i < dates.length; i++) {
+      const dateObj = new Date(dates[i]);
+      dates[i] = dateObj.toISOString().split('T')[0];
+    }
     return dates;
   }
 
