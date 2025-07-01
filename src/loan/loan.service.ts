@@ -1043,7 +1043,7 @@ export class LoanService {
     });
   }
 
-  async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string) {
+  async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string, page: number = 1) {
     type LoanWithFlag = Awaited<ReturnType<typeof this.prisma.loan.findMany>>[number] & {
       hasOtherLoanPaymentInPeriod?: boolean;
       installment: Array<{
@@ -1053,11 +1053,22 @@ export class LoanService {
         status?: string | null;
         [key: string]: any;
       }>;
+      user?: {
+        name?: string | null;
+        [key: string]: any;
+      } | null;
+      customer?: {
+        ic?: string | null;
+        name?: string | null;
+        [key: string]: any;
+      } | null;
       nextInstallmentDate?: string | null;
       nextInstallmentAmount?: string | null;
     };
 
     const loans = await this.prisma.loan.findMany({
+      skip: (page - 1) * 10,
+      take: 3,
       where: {
         loan_date : {
           gte: fromDate ? new Date(fromDate) : undefined,
@@ -1073,6 +1084,7 @@ export class LoanService {
       include: {
         customer: true,
         installment: true,
+        user: true,
       },
       orderBy: {
         created_at: 'desc',
@@ -1112,10 +1124,11 @@ export class LoanService {
       });
 
       if (payments.length > 0) {
-        // Find the next unpaid installment for the current loan
+
         const nextInstallment = loan.installment
-          .filter(inst => !inst.status || inst.status === null || inst.status === 'Pending')
-          .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())[0];
+          .filter(inst => inst.installment_date) // remove entries without a date
+          .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
+          .find(inst => !inst.status || inst.status == null);   
 
         loan.nextInstallmentDate = nextInstallment ? nextInstallment.installment_date : null;
         loan.nextInstallmentAmount = nextInstallment ? nextInstallment.due_amount : null;
@@ -1127,6 +1140,16 @@ export class LoanService {
       loan.hasOtherLoanPaymentInPeriod = payments.length > 0;
     }
 
+    // Only return the required fields for each loan
+    return loans.map(loan => ({
+      agent: loan.user?.name || null,
+      customerIC: loan.customer?.ic || null,
+      customerName: loan.customer?.name || null,
+      dueDate: loan.nextInstallmentDate || null,
+      dueAmount: loan.nextInstallmentAmount || null,
+      remark: loan.loan_remark || null,
+      hasOtherLoanPaymentInPeriod: loan.hasOtherLoanPaymentInPeriod || false,
+    }));
     return loans;
   }
 }
