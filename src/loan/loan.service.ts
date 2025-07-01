@@ -1123,29 +1123,21 @@ export class LoanService {
         select: { id: true }
       });
 
-      if (payments.length > 0) {
 
-        const nextInstallment = loan.installment
-          .filter(inst => {
-            if (!inst.installment_date) return false;
-            const date = new Date(inst.installment_date);
-            const from = fromDate ? new Date(fromDate) : null;
-            const to = toDate ? new Date(toDate) : null;
-            // Only include installments within the date range (inclusive)
-            return (
-              (!from || date >= from) &&
-              (!to || date <= to)
-            );
-          })
-          .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
-          .find(inst => !inst.status || inst.status === null || inst.status.toLowerCase() === 'unpaid');
-
-        loan.nextInstallmentDate = nextInstallment ? nextInstallment.installment_date : null;
-        loan.nextInstallmentAmount = nextInstallment ? nextInstallment.due_amount : null;
-      } else {
-        loan.nextInstallmentDate = null;
-        loan.nextInstallmentAmount = null;
-      }
+      const nextInstallment = loan.installment
+        .filter(inst => {
+          if (!inst.installment_date) return false;
+          const date = new Date(inst.installment_date);
+          const from = fromDate ? new Date(fromDate) : null;
+          const to = toDate ? new Date(toDate) : null;
+          // Only include installments within the date range (inclusive)
+          return (
+            (!from || date >= from) &&
+            (!to || date <= to)
+          );
+        })
+        .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
+        .find(inst => !inst.status || inst.status === null || inst.status.toLowerCase() === 'unpaid');
 
       loan.hasOtherLoanPaymentInPeriod = payments.length > 0;
     }
