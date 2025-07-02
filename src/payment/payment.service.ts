@@ -197,6 +197,51 @@ export class PaymentService {
       data: paymentData,
     });
 
+    // After updating payment, check all payments related to the same loan
+    if (payment.loan_id) {
+      // Find all payments for this loan
+      const allPayments = await this.prisma.payment.findMany({
+      where: { loan_id: payment.loan_id }
+      });
+
+      // Sum all "In" payments
+      const totalIn = allPayments
+      .filter(p => p.type === 'In')
+      .reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+      // Get the loan details
+      const loan = await this.prisma.loan.findUnique({
+      where: { id: payment.loan_id }
+      });
+
+      if (loan) {
+      // If total "In" payments >= payable_amount, set status to Completed
+      if (totalIn >= parseFloat(loan.principal_amount)) {
+        await this.prisma.loan.update({
+        where: { id: payment.loan_id },
+        data: { status: 'Completed' }
+        });
+      }
+
+      // Check for overdue unpaid installments
+      const overdueInstallments = await this.prisma.installment.findMany({
+        where: {
+        loan_id: payment.loan_id,
+        status: 'Unpaid',
+        receiving_date: {
+          lt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) // more than 14 days ago
+        }
+        }
+      });
+
+      if (overdueInstallments.length > 0) {
+        await this.prisma.loan.update({
+        where: { id: payment.loan_id },
+        data: { status: 'Bad Debt' }
+        });
+      }
+      }
+    }
 
     return updatedPayment;
   }
