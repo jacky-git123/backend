@@ -1149,7 +1149,7 @@ export class LoanService {
 
       loan.hasOtherLoanPaymentInPeriod = payments.length > 0;
       loan.nextInstallmentDate = nextInstallment ? nextInstallment.installment_date : null;
-      loan.nextInstallmentAmount = nextInstallment ? nextInstallment.due_amount : null;
+      loan.nextInstallmentAmount = nextInstallment ? nextInstallment.due_amount : loan.payment_per_term || null;
     }
 
     // Only return the required fields for each loan
