@@ -131,7 +131,7 @@ export class PaymentService {
     // Validate installment if specified
     if (payment.installment_id) {
       const _installment = await this.prisma.installment.findFirst({
-        where: { id: payment.installment_id },
+        where: { id: payment.installment_id, generate_id: payment.generate_id },
       });
 
       if (!_installment) {

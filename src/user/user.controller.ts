@@ -2,10 +2,11 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserHierarchyService } from './user-hierarchy-service.service';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService, private readonly userHierarchyService:UserHierarchyService) {}
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
@@ -61,5 +62,19 @@ export class UserController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.userService.remove(id);
+  }
+
+  @Get(':userId/hierarchy')
+  async getUserHierarchy(
+    @Param('userId') userId: string
+  ): Promise<any> {
+    return this.userHierarchyService.getUserHierarchy(userId);
+  }
+
+  @Get(':userId/hierarchy/detailed')
+  async getUserHierarchyWithDetails(
+    @Param('userId') userId: string
+  ): Promise<any & { hierarchyTree: any[] }> {
+    return this.userHierarchyService.getUserHierarchyWithDetails(userId);
   }
 }
