@@ -4,10 +4,14 @@ import { CreateCustomerDto, UpdateCustomerDto } from './customer.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { LocalAuthGuard } from 'src/auth/local-auth.guard';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { UserHierarchyService } from 'src/user/user-hierarchy-service.service';
 
 @Controller('customer')
 export class CustomerController {
-    constructor(private readonly customerService: CustomerService) {}
+    constructor(
+      private readonly customerService: CustomerService,
+      private readonly userHierarchyService:UserHierarchyService
+    ) {}
 
   // @UseGuards(AuthGuard)
   @Post()

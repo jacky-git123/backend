@@ -72,7 +72,7 @@ export class ReportService {
                     deposit: parseFloat(loan.deposit_amount).toFixed(2) || '0',
                     out: (parseFloat(loan.principal_amount || '0') - parseFloat(loan.deposit_amount || '0')).toFixed(2),
                     dueDate: nextDueInstallment?.installment_date || '',
-                    dueAmount:  parseFloat(loan.payment_per_term).toFixed(2),
+                    dueAmount:  parseFloat(nextDueInstallment.due_amount).toFixed(2),
                     totalAmountReceived:  parseFloat(totalAmountReceived).toFixed(2),
                     estimatedProfit: parseFloat(loan.estimated_profit).toFixed(2) || '0',
                     actualProfit: parseFloat(loan.actual_profit).toFixed(2) || '0'
