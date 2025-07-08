@@ -3,11 +3,14 @@ import { PrismaService } from 'nestjs-prisma';
 import { CreateCustomerDto, UpdateCustomerDto } from './customer.dto';
 import { pickBy } from 'lodash';
 import { RunningNumberGenerator } from 'src/common/utils';
+import { UserHierarchyService } from 'src/user/user-hierarchy-service.service';
 
 @Injectable()
 export class CustomerService {
-    constructor(private prisma: PrismaService,
-      private utilService:RunningNumberGenerator
+    constructor(
+      private prisma: PrismaService,
+      private utilService:RunningNumberGenerator,
+      private userHierarchyService: UserHierarchyService
     ) {}
 
   async create(data: any) {
@@ -54,6 +57,9 @@ export class CustomerService {
         id: authUserId,
       }
     });
+
+    const userHierarchy = await this.userHierarchyService.getUserHierarchy(authUserId);
+    // console.log('User Hierarchy:', userHierarchy.userLists);
    
     let where: any = {};
   
@@ -120,7 +126,20 @@ export class CustomerService {
     }
   
     
-    where = { ...where, deleted: false }
+    where = {
+      ...where, 
+      deleted: false, 
+      OR: [
+        // Match by created_by
+        {
+          created_by: { in: userHierarchy.userLists }
+        },
+        // Match by leadUser
+        ...userHierarchy.userLists.map(userId => ({
+          leadUser: { equals: [{ lead1: userId }] }
+        }))
+      ]
+    };
     
     
   
