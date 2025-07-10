@@ -267,7 +267,7 @@ export class LoanService {
           date_period: createLoanDto.date_period.toString(),
           repayment_term: createLoanDto.repayment_term.toString(),
           interest: createLoanDto.interest.toString(),
-          repayment_date: new Date(createLoanDto.repayment_date + 'T00:00:00+08:00'),
+          repayment_date: new Date(createLoanDto.repayment_date + 'T00:00:00Z'),
           loan_remark: createLoanDto.loan_remark.toString(),
           status: createLoanDto.status,
           amount_given: createLoanDto.amount_given?.toString(),
@@ -275,7 +275,7 @@ export class LoanService {
           payment_per_term: createLoanDto.payment_per_term?.toString(),
           actual_profit: createLoanDto.actual_profit?.toString(),
           estimated_profit: createLoanDto.estimated_profit?.toString(),
-          loan_date: new Date(createLoanDto.loan_date + 'T00:00:00+08:00'),
+          loan_date: new Date(createLoanDto.loan_date + 'T00:00:00Z'),
           created_by: createLoanDto.userid,
           updated_by: createLoanDto.userid
         },
@@ -301,7 +301,7 @@ export class LoanService {
         data: {
           generate_id: paymentgenerateId,
           type: 'Out',
-          payment_date: new Date(createLoanDto.loan_date + 'T00:00:00+08:00'),
+          payment_date: new Date(createLoanDto.loan_date + 'T00:00:00Z'),
           amount: (Number(createLoanDto.principal_amount) - (Number(createLoanDto.deposit_amount) + Number(createLoanDto.application_fee)))?.toString(),
           balance: (Number(createLoanDto.principal_amount) - (Number(createLoanDto.deposit_amount)))?.toString(),
           account_details: 'Loan Disbursement',
