@@ -360,7 +360,7 @@ export class LoanService {
     if (installments.length > 0) {
       await Promise.all(
         installments.map(async (installment) => {
-          
+          installment.installment_date = new Date(installment.installment_date + 'T00:00:00Z');
           installment.updated_by = authUserId;
           if (installment.id) {
             await this.prisma.installment.update({
