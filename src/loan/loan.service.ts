@@ -284,7 +284,7 @@ export class LoanService {
       await Promise.all(
         calculateRepaymentDates.map(async (date, index) => {
           const installmentGenerateId = await this.utilService.generateUniqueNumber('IN');
-          const malaysiaDate = new Date(date + 'T00:00:00+08:00');
+          const malaysiaDate = new Date(date + 'T00:00:00Z');
           await prisma.installment.create({
             data: {
               generate_id: installmentGenerateId,
@@ -525,10 +525,10 @@ export class LoanService {
       }
     }
     
-    for (let i = 0; i < dates.length; i++) {
-      const dateObj = new Date(dates[i]);
-      dates[i] = dateObj.toISOString().split('T')[0];
-    }
+    // for (let i = 0; i < dates.length; i++) {
+    //   const dateObj = new Date(dates[i]);
+    //   dates[i] = dateObj.toISOString().split('T')[0];
+    // }
     return dates;
   }
 
