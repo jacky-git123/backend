@@ -267,7 +267,7 @@ export class LoanService {
           date_period: createLoanDto.date_period.toString(),
           repayment_term: createLoanDto.repayment_term.toString(),
           interest: createLoanDto.interest.toString(),
-          repayment_date: createLoanDto.repayment_date.toString(),
+          repayment_date: new Date(createLoanDto.repayment_date + 'T00:00:00+08:00'),
           loan_remark: createLoanDto.loan_remark.toString(),
           status: createLoanDto.status,
           amount_given: createLoanDto.amount_given?.toString(),
