@@ -282,7 +282,7 @@ export class LoanService {
       });
 
       await Promise.all(
-        calculateRepaymentDates.map(async (date, index) => {
+        calculateRepaymentDates.map(async (date, index) => {console.log('date', typeof date);
           const installmentGenerateId = await this.utilService.generateUniqueNumber('IN');
           const malaysiaDate = new Date(date + 'T00:00:00Z');
           await prisma.installment.create({
@@ -503,9 +503,11 @@ export class LoanService {
     let currentDate = new Date(startDate);
 
     for (let i = 0; i < repaymentTerm; i++) {
-      dates.push(
-        `${currentDate.getDate()} ${currentDate.toLocaleString('default', { month: 'short' })} ${currentDate.getFullYear()}`,
-      );
+      // Format date as YYYY-MM-DD
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
 
       switch (period.toLowerCase()) {
         case 'day':
@@ -525,10 +527,6 @@ export class LoanService {
       }
     }
     
-    // for (let i = 0; i < dates.length; i++) {
-    //   const dateObj = new Date(dates[i]);
-    //   dates[i] = dateObj.toISOString().split('T')[0];
-    // }
     return dates;
   }
 
