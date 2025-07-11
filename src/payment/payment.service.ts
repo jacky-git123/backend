@@ -5,6 +5,7 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { connect } from 'http2';
 import { RunningNumberGenerator } from 'src/common/utils';
 import { LoanService } from 'src/loan/loan.service';
+import { format } from 'date-fns';
 
 @Injectable()
 export class PaymentService {
@@ -85,12 +86,12 @@ export class PaymentService {
         throw new Error(`Installment with id ${payment.installment_id} not found`);
       }
     }
-
+      payment.payment_date = format(payment.payment_date, 'yyyy-MM-dd');
     // Prepare data for creation
     const paymentData: any = {
       generate_id: payment.generate_id,
       type: payment.type || 'In',
-      payment_date: payment.payment_date,
+      payment_date: new Date(payment.payment_date + 'T00:00:00Z'),
       installment_date: payment.installment_date,
       amount: payment.amount,
       balance: payment.balance,
@@ -138,7 +139,7 @@ export class PaymentService {
         throw new Error(`Installment with id ${payment.installment_id} not found`);
       }
     }
-
+    payment.payment_date = format(payment.payment_date, 'yyyy-MM-dd');
     // Find the existing payment by generate_id
     const existingPayment = await this.prisma.payment.findFirst({
       where: { generate_id: payment.generate_id }
@@ -151,7 +152,7 @@ export class PaymentService {
     // Prepare data for update
     const paymentData: any = {
       type: payment.type,
-      payment_date: payment.payment_date,
+      payment_date: new Date(payment.payment_date + 'T00:00:00Z'),
       installment_date: payment.installment_date,
       amount: payment.amount,
       balance: payment.balance,
