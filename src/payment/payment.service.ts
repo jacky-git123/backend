@@ -140,15 +140,15 @@ export class PaymentService {
 
   private async updatePayment(payment: any, userId?: string) {
     // Validate installment if specified
-    if (payment.installment_id) {
-      const _installment = await this.prisma.installment.findFirst({
-        where: { id: payment.installment_id, generate_id: payment.generate_id },
-      });
+    // if (payment.installment_id) {
+    //   const _installment = await this.prisma.installment.findFirst({
+    //     where: { id: payment.installment_id },
+    //   });
 
-      if (!_installment) {
-        throw new Error(`Installment with id ${payment.installment_id} not found`);
-      }
-    }
+    //   if (!_installment) {
+    //     throw new Error(`Installment with id ${payment.installment_id} not found`);
+    //   }
+    // }
     payment.payment_date = format(payment.payment_date, 'yyyy-MM-dd');
     // Find the existing payment by generate_id
     const existingPayment = await this.prisma.payment.findFirst({
@@ -227,12 +227,12 @@ export class PaymentService {
 
       if (loan) {
       // If total "In" payments >= payable_amount, set status to Completed
-      if (totalIn >= parseFloat(loan.principal_amount)) {
-        await this.prisma.loan.update({
-        where: { id: payment.loan_id },
-        data: { status: 'Completed' }
-        });
-      }
+      // if (totalIn >= parseFloat(loan.principal_amount)) {
+      //   await this.prisma.loan.update({
+      //   where: { id: payment.loan_id },
+      //   data: { status: 'Completed' }
+      //   });
+      // }
 
       // Check for overdue unpaid installments
       const overdueInstallments = await this.prisma.installment.findMany({

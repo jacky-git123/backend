@@ -20,6 +20,7 @@ import { ExpensesModule } from './expenses/expenses.module';
       isGlobal: true,
       prismaServiceOptions: {
         prismaOptions:{
+          // log: ['query', 'info', 'warn', 'error'],
           datasources: {
             db: {
               url: process.env.DATABASE_URL,
