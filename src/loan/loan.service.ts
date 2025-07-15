@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { UpdateLoanDto } from './dto/update-loan.dto';
-import { addDays, addWeeks, addMonths, addYears, format } from 'date-fns';
+import { addDays, addWeeks, addMonths, addYears, format, subDays } from 'date-fns';
 import { pickBy } from 'lodash';
 import { RunningNumberGenerator } from 'src/common/utils';
 
@@ -244,7 +244,7 @@ export class LoanService {
       limit: limit,
     };
   }
-
+  
   async create(createLoanDto) {
     const generateId = await this.utilService.generateUniqueNumber('LN');
     const calculateRepaymentDates = await this.getInstallmentDates(
@@ -284,7 +284,7 @@ export class LoanService {
       });
 
       await Promise.all(
-        calculateRepaymentDates.map(async (date, index) => {console.log('date', typeof date);
+        calculateRepaymentDates.map(async (date, index) => {
           const installmentGenerateId = await this.utilService.generateUniqueNumber('IN');
           const malaysiaDate = new Date(date + 'T00:00:00Z');
           await prisma.installment.create({
@@ -507,12 +507,7 @@ export class LoanService {
     let currentDate = new Date(startDate);
 
     for (let i = 0; i < repaymentTerm; i++) {
-      // Format date as YYYY-MM-DD
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      dates.push(`${year}-${month}-${day}`);
-
+      
       switch (period.toLowerCase()) {
         case 'day':
           currentDate.setDate(currentDate.getDate() + interval);
@@ -529,6 +524,12 @@ export class LoanService {
         default:
           throw new Error('Invalid period type');
       }
+      currentDate = subDays(currentDate, 1); // Subtract one day to match the original logic
+      // Format date as YYYY-MM-DD
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
     }
     
     return dates;
