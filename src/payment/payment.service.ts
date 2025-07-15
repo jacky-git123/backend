@@ -27,6 +27,16 @@ export class PaymentService {
     const results = [];
 
     for (const payment of payments) {
+
+      // update loan status to completed if balance is less then 0 
+      const balance = Number(payment.balance);
+      if (!isNaN(balance) && balance <= 0) {
+        await this.prisma.loan.update({
+          where:  { id: payment.loan_id },
+          data:   { status: 'Completed' }     
+        });
+      }
+
       // Check if payment already exists (has generate_id)
       if (payment.generate_id) {
         // Check if this generate_id already exists in the database
