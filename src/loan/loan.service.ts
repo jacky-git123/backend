@@ -87,10 +87,12 @@ export class LoanService {
     if (!loadData) {
       return null; // or throw an error if preferred
     }
-
-    const getLeadUser = await this.prisma.user.findFirst({
-      where: { id: loadData.user?.supervisor },
-    });
+    let getLeadUser;
+    if (loadData.user?.supervisor) {
+      getLeadUser = await this.prisma.user.findFirst({
+        where: { id: loadData.user?.supervisor },
+      });
+    }
 
     return { ...loadData, getLeadUser };
   }
