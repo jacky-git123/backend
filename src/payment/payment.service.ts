@@ -189,18 +189,18 @@ export class PaymentService {
     }
 
     // Update installment connection if specified
-    if (payment.installment_id) {
-      paymentData.installment = {
-        connect: {
-          id: payment.installment_id,
-        },
-      };
-    } else if (payment.installment_id === null) {
-      // Disconnect installment if explicitly set to null
-      paymentData.installment = {
-        disconnect: true
-      };
-    }
+    // if (payment.installment_id) {
+    //   paymentData.installment = {
+    //     connect: {
+    //       id: payment.installment_id,
+    //     },
+    //   };
+    // } else if (payment.installment_id === null) {
+    //   // Disconnect installment if explicitly set to null
+    //   paymentData.installment = {
+    //     disconnect: true
+    //   };
+    // }
 
     // Update payment record using the id from the found record
     const updatedPayment = await this.prisma.payment.update({
