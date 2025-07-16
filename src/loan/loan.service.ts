@@ -244,7 +244,7 @@ export class LoanService {
       limit: limit,
     };
   }
-  
+
   async create(createLoanDto) {
     const generateId = await this.utilService.generateUniqueNumber('LN');
     const calculateRepaymentDates = await this.getInstallmentDates(
@@ -505,9 +505,22 @@ export class LoanService {
   ): string[] {
     const dates: string[] = [];
     let currentDate = new Date(startDate);
-    dates.push(startDate); // Add the initial date
+
     for (let i = 0; i < repaymentTerm; i++) {
-      
+      // Format date as YYYY-MM-DD
+      if (dates.length === 0) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+      } else if (dates.length >= 1) {
+        currentDate = subDays(currentDate, 1);
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        dates.push(`${year}-${month}-${day}`);
+      }
+
       switch (period.toLowerCase()) {
         case 'day':
           currentDate.setDate(currentDate.getDate() + interval);
@@ -524,15 +537,9 @@ export class LoanService {
         default:
           throw new Error('Invalid period type');
       }
-      currentDate = subDays(currentDate, 1); // Subtract one day to match the original logic
-      // Format date as YYYY-MM-DD
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      if (dates.length < repaymentTerm) {
-        dates.push(`${year}-${month}-${day}`);
-      }
     }
+
+    
     
     return dates;
   }
