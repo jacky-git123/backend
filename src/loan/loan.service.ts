@@ -1111,6 +1111,21 @@ export class LoanService {
       },
     }) as LoanWithFlag[];
 
+    const totalCount = await this.prisma.loan.count({
+      where: {
+        loan_date: {
+          gte: fromDate ? new Date(fromDate) : undefined,
+          lte: toDate ? new Date(toDate) : undefined,
+        },
+        OR: [
+          { created_by: { in: agents } },
+          { supervisor: { in: agents } },
+          { supervisor_2: { in: agents } }
+        ],
+        deleted: false,
+      },
+    });
+
     for (const loan of loans) {
       if (!loan.customer_id) continue;
 
@@ -1165,7 +1180,7 @@ export class LoanService {
     }
 
     // Only return the required fields for each loan
-    return loans.map(loan => ({
+    const rows = await loans.map(loan => ({
       agent: loan.user?.name || null,
       customerIC: loan.customer?.ic || null,
       customerName: loan.customer?.name || null,
@@ -1174,7 +1189,12 @@ export class LoanService {
       remark: loan.loan_remark || null,
       hasOtherLoanPaymentInPeriod: loan.hasOtherLoanPaymentInPeriod || false,
     }));
-    return loans;
+    return {
+      data: rows,
+      totalCount: totalCount,
+      page: page,
+      limit: 10,
+    }
   }
 }
 
