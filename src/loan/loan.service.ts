@@ -1063,7 +1063,7 @@ export class LoanService {
     });
   }
 
-  async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string, page: number = 1) {
+  async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string, page: number = 1, limit: number = 10) {
     type LoanWithFlag = Awaited<ReturnType<typeof this.prisma.loan.findMany>>[number] & {
       hasOtherLoanPaymentInPeriod?: boolean;
       installment: Array<{
@@ -1088,7 +1088,7 @@ export class LoanService {
 
     const loans = await this.prisma.loan.findMany({
       skip: (page - 1) * 10,
-      take: 10,
+      take: limit,
       where: {
         loan_date : {
           gte: fromDate ? new Date(fromDate) : undefined,
@@ -1193,7 +1193,7 @@ export class LoanService {
       data: rows,
       totalCount: totalCount,
       page: page,
-      limit: 10,
+      limit,
     }
   }
 }
