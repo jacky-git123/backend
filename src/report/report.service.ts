@@ -97,7 +97,7 @@ export class ReportService {
 
             const formatPaymentData = Promise.all(paymentData.map(async payment => {
                 const loan = await this.prisma.loan.findUnique({
-                    where: { id: payment.loan_id },
+                    where: { id: payment.loan_id, deleted: false },
                     include: {
                         customer: true,
                         installment: true,
@@ -114,6 +114,7 @@ export class ReportService {
                         }
                     }
                 });
+                if (!loan) return null; // Skip if loan not found
 
                 return {
                     paymentType: payment.type,
