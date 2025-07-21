@@ -130,8 +130,9 @@ export class ReportService {
                 };
             }));
             
-    
-            return formatPaymentData;
+            const filteredPaymentData = (await formatPaymentData).filter(item => item !== null);
+            return filteredPaymentData;
+            // return formatPaymentData;
         }
         return [];
     }
