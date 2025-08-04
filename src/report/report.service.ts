@@ -86,8 +86,8 @@ export class ReportService {
             const paymentData = await this.prisma.payment.findMany({
                 where: {
                     payment_date: {
-                        gte: new Date(payment_date_from || loan_data_from).toISOString(),
-                        lte: new Date(payment_date_to || loan_data_to).toISOString(),
+                        gte: new Date(loan_data_from).toISOString(),
+                        lte: new Date(loan_data_to).toISOString(),
                     }
                 },
                 orderBy: {
