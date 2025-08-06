@@ -10,7 +10,7 @@ export class ReportService {
     // You can inject other services here to fetch data and format it as needed
     
     async generateReport(generateReportDto: GenerateReportDto) {
-        const { loan_data_from, loan_data_to, report_type, payment_date_from, payment_date_to } = generateReportDto;
+        const { loan_data_from, loan_data_to, report_type } = generateReportDto;
         if (report_type === 'loan') {
             const loanData = await this.prisma.loan.findMany({
                 where: {
