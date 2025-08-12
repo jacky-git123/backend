@@ -65,6 +65,7 @@ export class ReportService {
                     loanCreatedDate: loan.loan_date,
                     loanId: loan.generate_id,
                     agent: loan.user?.name || '',
+                    agent2: loan.user_2?.name || '',
                     customerName: loan.customer?.name || '',
                     customerIc: loan.customer?.ic || '',
                     loanAmount: parseFloat(loan.principal_amount).toFixed(2) || '0',
