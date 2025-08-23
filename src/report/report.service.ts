@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GenerateAgentReportDto, GenerateReportDto, GetPaymentLoanDataDto, MonthlyPaymentSummary, PaymentWithLoan } from './dto/report.dto';
+import { GenerateAgentReportDto, GenerateReportDto, GetPaymentLoanDataDto, GetUserExpensesDto, MonthlyBreakdown, MonthlyPaymentData, MonthlyPaymentSummary, PaymentWithLoan, UserExpensesResponse } from './dto/report.dto';
 import { PrismaService } from 'nestjs-prisma';
 
 @Injectable()
@@ -194,235 +194,194 @@ export class ReportService {
     return [];
   }
 
-  /**
-   * Get payment and loan data filtered by agent and date range
-   * @param params - Object containing agent ID, from date, and to date
-   * @returns Promise<PaymentWithLoan[]>
-   */
-  async getPaymentLoanData(params: GetPaymentLoanDataDto): Promise<PaymentWithLoan[]> {
-    const { agent, fromDate, toDate } = params;
-
-    try {
-      const payments = await this.prisma.payment.findMany({
-        where: {
-          AND: [
-            {
-              payment_date: {
-                gte: new Date(fromDate),
-                lte: new Date(toDate),
-              },
-            },
-            {
-              loan: {
-                OR: [
-                  { supervisor: { in: agent } },
-                  { supervisor_2: { in: agent } },
-                ],
-                AND: [
-                  { deleted: false },
-                ],
-              },
-            },
-          ],
-        },
-        include: {
-          loan: true,
-        },
-        orderBy: [
-          { payment_date: 'desc' },
-          { loan: { loan_date: 'desc' } },
-        ],
-      });
-
-      return payments as PaymentWithLoan[];
-    } catch (error) {
-      console.error('Error fetching payment and loan data:', error);
-      throw new Error('Failed to retrieve payment and loan data');
+  async getUserExpenses(data: GetUserExpensesDto): Promise<UserExpensesResponse[]> {
+    const { agents, fromDate, toDate } = data;
+    
+    const fromDateObj = new Date(fromDate);
+    const toDateObj = new Date(toDate);
+    
+    // Extract years from the date range
+    const fromYear = fromDateObj.getFullYear();
+    const toYear = toDateObj.getFullYear();
+    
+    // Generate array of years to query
+    const years: number[] = [];
+    for (let year = fromYear; year <= toYear; year++) {
+      years.push(year);
     }
-  }
-
-  /**
-   * Get payment and loan data with monthly summary statistics
-   * @param params - Object containing agent ID, from date, and to date
-   * @returns Promise<PaymentLoanSummary>
-   */
-  async getPaymentLoanSummary(params: GetPaymentLoanDataDto): Promise<any> {
-    const data = await this.getPaymentLoanData(params);
-
-    const { agent, fromDate, toDate } = params;
-
-    // Get the years covered by the date range to fetch expenses
-    const startYear = new Date(fromDate).getFullYear();
-    const endYear = new Date(toDate).getFullYear();
-    const years = [];
-    for (let year = startYear; year <= endYear; year++) {
-      years.push(year.toString());
-    }
-
-    // Fetch expenses for all relevant years
-    const expensePromises = years.map(year => this.getAgentExpenses(agent, year));
-    const expensesByYear = await Promise.all(expensePromises);
-
-    // Create a map of year -> expenses for quick lookup
-    const expensesMap = new Map<string, any>();
-    expensesByYear.forEach((expenses, index) => {
-      if (expenses) {
-        expensesMap.set(years[index], expenses);
+    
+    // Fetch users
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: {
+          in: agents
+        },
+        deleted: {
+          not: true
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        generate_id: true, // Added to get the agent's generate_id
       }
     });
 
-    // const totalPayments = data.length;
-    // const totalAmount = data.reduce((sum, payment) => {
-    //   const amount = parseFloat(payment.amount || '0');
-    //   return sum + (isNaN(amount) ? 0 : amount);
-    // }, 0);
-
-    // const uniqueLoans = new Set(data.map(payment => payment.loan.id));
-    // const totalLoans = uniqueLoans.size;
-
-    // Group payments by month and calculate In/Out/Balance
-    const monthlyData = new Map<string, {
-      paymentIn: number;
-      paymentOut: number;
-      count: number;
-      expense: number;
-    }>();
-
-    data.forEach(payment => {
-      if (payment.payment_date) {
-        const monthKey = payment.payment_date.toISOString().substring(0, 7); // YYYY-MM
-        const amount = parseFloat(payment.amount || '0');
-
-        if (!monthlyData.has(monthKey)) {
-
-          // Extract year and month from monthKey (YYYY-MM)
-          const [yearStr, monthStr] = monthKey.split('-');
-          const monthNum = parseInt(monthStr, 10);
-          const yearExpenses = expensesMap.get(yearStr);
-          const monthlyExpense = this.getMonthlyExpense(yearExpenses, monthNum);
-          // Initialize monthly data with expense
-          monthlyData.set(monthKey, {
-            paymentIn: 0,
-            paymentOut: 0,
-            count: 0,
-            expense: monthlyExpense,
-          });
+    // Fetch expenses for all users and years
+    const expenses = await this.prisma.expenses.findMany({
+      where: {
+        user_id: {
+          in: agents
+        },
+        year: {
+          in: years.map(y => y.toString())
+        },
+        deleted: {
+          not: true
         }
+      },
+      select: {
+        id: true,
+        user_id: true,
+        year: true,
+        jan: true,
+        feb: true,
+        mar: true,
+        apr: true,
+        may: true,
+        jun: true,
+        jul: true,
+        aug: true,
+        sep: true,
+        oct: true,
+        nov: true,
+        dec: true,
+      }
+    });
 
-        const monthData = monthlyData.get(monthKey)!;
-        monthData.count++;
-
-        // Determine if payment is In or Out based on payment type
-        // You may need to adjust this logic based on your business rules
-        if (payment.type === 'In' || payment.type === 'payment_in' || payment.type === 'credit') {
-          monthData.paymentIn += isNaN(amount) ? 0 : amount;
-        } else if (payment.type === 'Out' || payment.type === 'payment_out' || payment.type === 'debit') {
-          monthData.paymentOut += isNaN(amount) ? 0 : amount;
-        } else {
-          // If type is not specified or unknown, treat positive amounts as In, negative as Out
-          if (amount >= 0) {
-            monthData.paymentIn += amount;
-          } else {
-            monthData.paymentOut += Math.abs(amount);
+    // Fetch payments within the date range for loans supervised by these users
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        payment_date: {
+          gte: fromDateObj,
+          lte: toDateObj
+        },
+        loan: {
+          OR: [
+            {
+              supervisor: {
+                in: agents
+              }
+            },
+            {
+              supervisor_2: {
+                in: agents
+              }
+            }
+          ]
+        }
+      },
+      select: {
+        id: true,
+        amount: true,
+        payment_date: true,
+        type: true,
+        loan: {
+          select: {
+            supervisor: true,
+            supervisor_2: true
           }
         }
+      },
+      orderBy: {
+        payment_date: 'asc'
       }
     });
 
-    // Handle months within the date range that might not have payments but should show expenses
-    const startDate = new Date(fromDate);
-    const endDate = new Date(toDate);
-    const currentDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+    // Helper function to get expense value for a specific month
+    const getExpenseForMonth = (userId: string, year: number, month: number): number => {
+      const userExpenses = expenses.filter(exp => exp.user_id === userId && exp.year === year.toString());
+      if (userExpenses.length === 0) return 0;
 
-    while (currentDate <= endDate) {
-      const monthKey = currentDate.toISOString().substring(0, 7); // YYYY-MM
+      const expense = userExpenses[0];
+      const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const monthField = monthNames[month - 1];
       
-      if (!monthlyData.has(monthKey)) {
-        const yearStr = currentDate.getFullYear().toString();
-        const monthNum = currentDate.getMonth() + 1;
-        const yearExpenses = expensesMap.get(yearStr);
-        const monthlyExpense = this.getMonthlyExpense(yearExpenses, monthNum);
+      return parseFloat(expense[monthField as keyof typeof expense] as string || '0');
+    };
 
-        monthlyData.set(monthKey, {
-          paymentIn: 0,
-          paymentOut: 0,
-          count: 0,
-          expense: monthlyExpense,
-        });
+    // Helper function to generate monthly breakdown
+    const generateMonthlyBreakdown = (userId: string): MonthlyBreakdown[] => {
+      const monthlyData: { [key: string]: MonthlyBreakdown } = {};
+
+      // Initialize months between fromDate and toDate
+      const current = new Date(fromDateObj);
+      while (current <= toDateObj) {
+        const year = current.getFullYear();
+        const month = current.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+
+        monthlyData[monthKey] = {
+          month: monthKey,
+          totalPaymentIn: 0,
+          totalPaymentOut: 0,
+          balance: 0,
+          expense: getExpenseForMonth(userId, year, month),
+          finalBalance: 0
+        };
+
+        // Move to next month
+        current.setMonth(current.getMonth() + 1);
       }
 
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
+      // Filter payments for this user
+      const userPayments = payments.filter(payment => 
+        payment.loan?.supervisor === userId || payment.loan?.supervisor_2 === userId
+      );
 
-    // Convert to array and sort by month
-    const monthlyBreakdown: MonthlyPaymentSummary[] = Array.from(monthlyData.entries())
-      .map(([month, data]) => ({
-        month,
-        totalPaymentIn: data.paymentIn,
-        totalPaymentOut: data.paymentOut,
-        balance: data.paymentIn - data.paymentOut,
-        // paymentCount: data.count,
-        expense: data.expense, // Add expense to the breakdown
-        // netBalance: data.paymentIn - data.paymentOut - data.expense, // Optional: net balance after expenses
-        finalBalance: ((data.paymentIn - data.paymentOut) - data.expense), // Final balance after expenses
-      }))
-      .sort((a, b) => a.month.localeCompare(b.month));
+      // Process payments and group by month
+      userPayments.forEach(payment => {
+        if (payment.payment_date) {
+          const paymentDate = new Date(payment.payment_date);
+          const year = paymentDate.getFullYear();
+          const month = paymentDate.getMonth() + 1;
+          const monthKey = `${year}-${String(month).padStart(2, '0')}`;
 
-
-    return {
-      monthlyBreakdown
-      // totalPayments,
-      // totalAmount,
-      // totalLoans,
-      // data,
-    };
-  }
-
-  /**
-   * Get expenses for a specific agent and year
-   * @param agentId - UUID of the agent
-   * @param year - Year in YYYY format
-   * @returns Promise with expenses data
-   */
-  async getAgentExpenses(agentId: string[], year: string) {
-    try {
-      const expenses = await this.prisma.expenses.findFirst({
-        where: {
-          user_id: { in: agentId },
-          year: year,
-          OR: [
-            { deleted: null },
-            { deleted: false },
-          ],
-        },
+          if (monthlyData[monthKey]) {
+            const amount = parseFloat(payment.amount || '0');
+            
+            if (payment.type === 'In') {
+              monthlyData[monthKey].totalPaymentIn += amount;
+            } else if (payment.type === 'Out') {
+              monthlyData[monthKey].totalPaymentOut += amount;
+            }
+          }
+        }
       });
 
-      return expenses;
-    } catch (error) {
-      console.error('Error fetching agent expenses:', error);
-      return null;
-    }
-  }
+      // Calculate balance and finalBalance for each month
+      Object.values(monthlyData).forEach(monthData => {
+        monthData.balance = monthData.totalPaymentOut - monthData.totalPaymentIn;
+        monthData.finalBalance = monthData.balance - monthData.expense;
+      });
 
-  /**
-   * Get monthly expense amount for a specific month
-   * @param expenses - Expenses record
-   * @param month - Month number (1-12)
-   * @returns Expense amount for the month
-   */
-  private getMonthlyExpense(expenses: any, month: number): number {
-    if (!expenses) return 0;
-
-    const monthFields = {
-      1: 'jan', 2: 'feb', 3: 'mar', 4: 'apr',
-      5: 'may', 6: 'jun', 7: 'jul', 8: 'aug',
-      9: 'sep', 10: 'oct', 11: 'nov', 12: 'dec'
+      // Return sorted by month
+      return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
     };
 
-    const fieldName = monthFields[month as keyof typeof monthFields];
-    const expenseValue = expenses[fieldName];
-    
-    return expenseValue ? parseFloat(expenseValue) || 0 : 0;
+    // Generate response for each user
+    const result: UserExpensesResponse[] = users.map(user => ({
+      agentId: user.generate_id || user.id, // Use generate_id if available, fallback to id
+      agentName: user.name || '',
+      monthlyBreakdown: generateMonthlyBreakdown(user.id)
+    }));
+
+    return result;
+  }
+
+  // Alternative method that filters by specific months based on the date range
+  async getUserExpensesByMonth(data: GetUserExpensesDto): Promise<UserExpensesResponse[]> {
+    // This method now returns the same format as getUserExpenses
+    return this.getUserExpenses(data);
   }
 }

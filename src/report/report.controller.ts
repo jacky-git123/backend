@@ -17,17 +17,17 @@ export class ReportController {
     return this.reportService.generateReport(generateReportDto);
   }
 
-  @Post('agent-report')
-  generateAgentReport(@Body() generateAgentReportDto: GetPaymentLoanDataDto) {
-    // This method will handle the logic for generating agent-specific reports
-    // You can call methods from the reportService to fetch data and format it as needed
-    return this.reportService.getPaymentLoanData(generateAgentReportDto);
-  }
+  // @Post('agent-report')
+  // generateAgentReport(@Body() generateAgentReportDto: GetPaymentLoanDataDto) {
+  //   // This method will handle the logic for generating agent-specific reports
+  //   // You can call methods from the reportService to fetch data and format it as needed
+  //   return this.reportService.getPaymentLoanData(generateAgentReportDto);
+  // }
 
   @Post('agent-report-summary')
   getPaymentLoanSummary(@Body() generateAgentReportDto: GetPaymentLoanDataDto) {
     // This method will handle the logic for generating agent-specific reports
     // You can call methods from the reportService to fetch data and format it as needed
-    return this.reportService.getPaymentLoanSummary(generateAgentReportDto);
+    return this.reportService.getUserExpensesByMonth(generateAgentReportDto);
   }
 }

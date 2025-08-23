@@ -17,7 +17,7 @@ export class GenerateAgentReportDto {
 }
 
 export class GetPaymentLoanDataDto {
-  agent: string[]; // UUID of supervisor or supervisor_2
+  agents: string[]; // UUID of supervisor or supervisor_2
   fromDate: string; // YYYY-MM-DD format
   toDate: string; // YYYY-MM-DD format
 }
@@ -75,4 +75,42 @@ export interface MonthlyPaymentSummary {
   totalPaymentOut: number;
   balance: number; // In - Out
   paymentCount?: number;
+}
+
+// /// /// 
+
+export interface GetUserExpensesDto {
+  agents: string[];
+  fromDate: string;
+  toDate: string;
+}
+
+export interface MonthlyPaymentData {
+  month: string;
+  monthName: string;
+  year: number;
+  totalAmount: number;
+  paymentCount: number;
+  payments: {
+    id: string;
+    amount: string;
+    paymentDate: Date;
+    type: string;
+    remarks: string;
+  }[];
+}
+
+export interface MonthlyBreakdown {
+  month: string; // Format: "YYYY-MM"
+  totalPaymentIn: number;
+  totalPaymentOut: number;
+  balance: number;
+  expense: number;
+  finalBalance: number;
+}
+
+export interface UserExpensesResponse {
+  agentId: string;
+  agentName: string;
+  monthlyBreakdown: MonthlyBreakdown[];
 }
