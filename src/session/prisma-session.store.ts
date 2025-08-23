@@ -9,7 +9,7 @@ interface SessionData {
 
 @Injectable()
 export class PrismaSessionStore extends Store {
-  constructor(private prisma: PrismaService,) {
+  constructor(private prisma: PrismaService) {
     super();
     this.prisma = prisma;
   }
@@ -17,22 +17,28 @@ export class PrismaSessionStore extends Store {
   // Get session by session ID
   async get(sid: string, callback: (err?: any, session?: SessionData | null) => void) {
     try {
+      console.log('Getting session:', sid);
+      
       const session = await this.prisma.session.findUnique({
         where: { sid },
       });
 
       if (!session) {
+        console.log('Session not found:', sid);
         return callback(null, null);
       }
 
       // Check if session has expired
       if (session.expiresAt < new Date()) {
+        console.log('Session expired, destroying:', sid);
         await this.destroy(sid, () => {});
         return callback(null, null);
       }
 
+      console.log('Session retrieved successfully:', sid);
       callback(null, session.data as SessionData);
     } catch (error) {
+      console.error('Error getting session:', error);
       callback(error);
     }
   }
@@ -40,10 +46,15 @@ export class PrismaSessionStore extends Store {
   // Save/update session
   async set(sid: string, session: SessionData, callback?: (err?: any) => void) {
     try {
+      console.log('Setting session:', sid, 'Data:', session);
+      
       const expiresAt = session.cookie?.expires || new Date(Date.now() + 5 * 60 * 1000);
       const userId = session.passport?.user?.id || null;
 
-      await this.prisma.session.upsert({
+      console.log('Session expires at:', expiresAt);
+      console.log('Session user ID:', userId);
+
+      const result = await this.prisma.session.upsert({
         where: { sid },
         update: {
           data: session as any,
@@ -59,8 +70,10 @@ export class PrismaSessionStore extends Store {
         },
       });
 
+      console.log('Session saved successfully:', result);
       callback && callback();
     } catch (error) {
+      console.error('Error setting session:', error);
       callback && callback(error);
     }
   }
@@ -68,11 +81,16 @@ export class PrismaSessionStore extends Store {
   // Destroy session
   async destroy(sid: string, callback?: (err?: any) => void) {
     try {
+      console.log('Destroying session:', sid);
+      
       await this.prisma.session.delete({
         where: { sid },
       });
+      
+      console.log('Session destroyed successfully:', sid);
       callback && callback();
     } catch (error) {
+      console.error('Error destroying session (this might be okay):', error);
       // If session doesn't exist, that's fine
       callback && callback();
     }
@@ -81,7 +99,9 @@ export class PrismaSessionStore extends Store {
   // Touch session (update expiry)
   async touch(sid: string, session: SessionData, callback?: (err?: any) => void) {
     try {
-      const expiresAt = session.cookie?.expires || new Date(Date.now() + 24 * 60 * 60 * 1000);
+      console.log('Touching session:', sid);
+      
+      const expiresAt = session.cookie?.expires || new Date(Date.now() + 5 * 60 * 1000);
       
       await this.prisma.session.update({
         where: { sid },
@@ -91,8 +111,10 @@ export class PrismaSessionStore extends Store {
         },
       });
       
+      console.log('Session touched successfully:', sid);
       callback && callback();
     } catch (error) {
+      console.error('Error touching session:', error);
       callback && callback(error);
     }
   }

@@ -8,32 +8,26 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const allowedOrigins = [
-  'http://localhost:4200',
-  'https://cs-season.com',
-  'https://www.cs-season.com',
-  'https://cs-summer.com',
-  'https://www.cs-summer.com'
-];
-
-app.enableCors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
-    }
-  },
-  credentials: true,
-});
+    'http://localhost:4200',
+    'https://cs-season.com',
+    'https://www.cs-season.com',
+    'https://cs-summer.com',
+    'https://www.cs-summer.com'
+  ];
 
   app.enableCors({
-    origin: 'http://localhost:4200',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
   });
-
 
   // Get the custom Prisma session store
   const prismaSessionStore = app.get('PRISMA_SESSION_STORE');
