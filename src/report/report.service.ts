@@ -10,20 +10,45 @@ export class ReportService {
   // You can inject other services here to fetch data and format it as needed
 
   async generateReport(generateReportDto: GenerateReportDto) {
-    const { loan_data_from, loan_data_to, report_type } = generateReportDto;
+    const {
+      loan_date_from,
+      loan_date_to,
+      report_type,
+      payment_date_from,
+      payment_date_to
+    } = generateReportDto;
+
     if (report_type === 'loan') {
+      // For loan reports, we can filter by loan dates and optionally by payment dates
+      let whereClause: any = {
+        deleted: false,
+      };
+
+      // Always filter by loan dates if provided
+      if (loan_date_from && loan_date_to) {
+        whereClause.loan_date = {
+          gte: new Date(loan_date_from).toISOString(),
+          lte: new Date(loan_date_to).toISOString(),
+        };
+      }
+
+      // Build payment filter for include
+      let paymentFilter: any = {};
+      if (payment_date_from && payment_date_to) {
+        paymentFilter.payment_date = {
+          gte: new Date(payment_date_from).toISOString(),
+          lte: new Date(payment_date_to).toISOString(),
+        };
+      }
+
       const loanData = await this.prisma.loan.findMany({
-        where: {
-          loan_date: {
-            gte: new Date(loan_data_from).toISOString(),
-            lte: new Date(loan_data_to).toISOString(),
-          },
-          deleted: false,
-        },
+        where: whereClause,
         include: {
           customer: true,
           installment: true,
-          payment: true,
+          payment: Object.keys(paymentFilter).length > 0 ? {
+            where: paymentFilter
+          } : true,
           user: {
             select: {
               name: true
@@ -46,17 +71,10 @@ export class ReportService {
             return sum + parseFloat(payment.amount || '0');
           }
           return sum;
-        }, 0).toFixed(2);
-
-        const loanDate = new Date(loan.loan_date);
-        const formattedDate = [
-          loanDate.getDate().toString().padStart(2, '0'),
-          (loanDate.getMonth() + 1).toString().padStart(2, '0'),
-          loanDate.getFullYear()
-        ].join('-');
+        }, 0);
 
         const nextDueInstallment = loan.installment
-          .filter(inst => inst.installment_date) // remove entries without a date
+          .filter(inst => inst.installment_date)
           .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
           .find(inst => !inst.status || inst.status == null);
 
@@ -69,27 +87,49 @@ export class ReportService {
           agentName2: loan.user_2?.name || '',
           customerName: loan.customer?.name || '',
           customerIc: loan.customer?.ic || '',
-          loanAmount: parseFloat(loan.principal_amount).toFixed(2) || '0',
-          payableAmount: parseFloat(loan.payment_per_term).toFixed(2) || '0',
-          deposit: parseFloat(loan.deposit_amount).toFixed(2) || '0',
+          loanAmount: parseFloat(loan.principal_amount || '0').toFixed(2),
+          payableAmount: parseFloat(loan.payment_per_term || '0').toFixed(2),
+          deposit: parseFloat(loan.deposit_amount || '0').toFixed(2),
           out: (parseFloat(loan.principal_amount || '0') - parseFloat(loan.deposit_amount || '0')).toFixed(2),
           dueDate: nextDueInstallment?.installment_date || '',
           dueAmount: parseFloat(nextDueInstallment?.due_amount || '0').toFixed(2),
-          totalAmountReceived: parseFloat(totalAmountReceived).toFixed(2),
-          estimatedProfit: parseFloat(loan.estimated_profit).toFixed(2) || '0',
-          actualProfit: parseFloat(loan.actual_profit).toFixed(2) || '0'
+          totalAmountReceived: totalAmountReceived.toFixed(2),
+          estimatedProfit: parseFloat(loan.estimated_profit || '0').toFixed(2),
+          actualProfit: parseFloat(loan.actual_profit || '0').toFixed(2)
         };
       });
 
       return formattedData;
     }
+
     if (report_type === 'payment') {
+      // Determine which date range to use for payment filtering
+      let paymentDateFrom, paymentDateTo, loanDateFrom, loanDateTo;
+
+      // Use payment dates if provided, otherwise fall back to loan dates
+      if (payment_date_from && payment_date_to) {
+        paymentDateFrom = payment_date_from;
+        paymentDateTo = payment_date_to;
+      } else if (loan_date_from && loan_date_to) {
+        paymentDateFrom = loan_date_from;
+        paymentDateTo = loan_date_to;
+      }
+
+      // Set loan date filters if provided
+      if (loan_date_from && loan_date_to) {
+        loanDateFrom = loan_date_from;
+        loanDateTo = loan_date_to;
+      }
+
+      if (!paymentDateFrom || !paymentDateTo) {
+        throw new Error('Either payment dates or loan dates must be provided for payment reports');
+      }
 
       const paymentData = await this.prisma.payment.findMany({
         where: {
           payment_date: {
-            gte: new Date(loan_data_from).toISOString(),
-            lte: new Date(loan_data_to).toISOString(),
+            gte: new Date(paymentDateFrom).toISOString(),
+            lte: new Date(paymentDateTo).toISOString(),
           }
         },
         orderBy: {
@@ -97,9 +137,23 @@ export class ReportService {
         }
       });
 
-      const formatPaymentData = Promise.all(paymentData.map(async payment => {
+      const formatPaymentData = await Promise.all(paymentData.map(async payment => {
+        // Build loan filter conditions
+        let loanWhereClause: any = {
+          id: payment.loan_id,
+          deleted: false
+        };
+
+        // Add loan date filter if provided
+        if (loanDateFrom && loanDateTo) {
+          loanWhereClause.loan_date = {
+            gte: new Date(loanDateFrom).toISOString(),
+            lte: new Date(loanDateTo).toISOString(),
+          };
+        }
+
         const loan = await this.prisma.loan.findUnique({
-          where: { id: payment.loan_id, deleted: false },
+          where: loanWhereClause,
           include: {
             customer: true,
             installment: true,
@@ -116,7 +170,8 @@ export class ReportService {
             }
           }
         });
-        if (!loan) return null; // Skip if loan not found
+
+        if (!loan) return null;
 
         return {
           paymentType: payment.type,
@@ -132,10 +187,10 @@ export class ReportService {
         };
       }));
 
-      const filteredPaymentData = (await formatPaymentData).filter(item => item !== null);
+      const filteredPaymentData = formatPaymentData.filter(item => item !== null);
       return filteredPaymentData;
-      // return formatPaymentData;
     }
+
     return [];
   }
 
@@ -160,8 +215,8 @@ export class ReportService {
             {
               loan: {
                 OR: [
-                  { supervisor: agent },
-                  { supervisor_2: agent },
+                  { supervisor: { in: agent } },
+                  { supervisor_2: { in: agent } },
                 ],
                 AND: [
                   { deleted: false },
@@ -330,11 +385,11 @@ export class ReportService {
    * @param year - Year in YYYY format
    * @returns Promise with expenses data
    */
-  async getAgentExpenses(agentId: string, year: string) {
+  async getAgentExpenses(agentId: string[], year: string) {
     try {
       const expenses = await this.prisma.expenses.findFirst({
         where: {
-          user_id: agentId,
+          user_id: { in: agentId },
           year: year,
           OR: [
             { deleted: null },

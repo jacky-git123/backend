@@ -1,10 +1,10 @@
 export class GenerateReportDto {
-    loan_data_from?: string;
-    loan_data_to?: string;
+    loan_date_from?: string;
+    loan_date_to?: string;
     report_type?: string;
 
-    // payment_date_from?: string; 
-    // payment_date_to?: string;
+    payment_date_from?: string; 
+    payment_date_to?: string;
 }
 
 export class GenerateAgentReportDto {
@@ -17,7 +17,7 @@ export class GenerateAgentReportDto {
 }
 
 export class GetPaymentLoanDataDto {
-  agent: string; // UUID of supervisor or supervisor_2
+  agent: string[]; // UUID of supervisor or supervisor_2
   fromDate: string; // YYYY-MM-DD format
   toDate: string; // YYYY-MM-DD format
 }
