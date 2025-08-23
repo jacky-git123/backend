@@ -1,15 +1,19 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserHierarchyService } from './user-hierarchy-service.service';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
+import { SessionUser } from 'src/session/session.dto';
+import { CurrentUser } from 'src/session/current-user.decorator';
 
 @Controller('user')
+@UseGuards(SessionAuthGuard) 
 export class UserController {
   constructor(private readonly userService: UserService, private readonly userHierarchyService:UserHierarchyService) {}
 
   @Post()
-  async create(@Body() createUserDto: CreateUserDto) {
+  async create(@Body() createUserDto: CreateUserDto, @CurrentUser() user: SessionUser) {
     delete createUserDto.userid;
     return this.userService.createUser(createUserDto);
   }
@@ -19,9 +23,10 @@ export class UserController {
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10,
     @Query('filter') filter: any,
-    @Query('userid') userid: any,
+    // @Query('userid') userid: any,
+    @CurrentUser() user: SessionUser
   ) {
-    return this.userService.findAll(Number(page), Number(limit), filter, userid);
+    return this.userService.findAll(Number(page), Number(limit), filter, user.id);
   }
 
   @Get('activeUser')
@@ -29,9 +34,10 @@ export class UserController {
     @Query('page') page: number = 0,
     @Query('limit') limit: number = 10,
     @Query('filter') filter: any,
-    @Query('userid') userid: any,
+    // @Query('userid') userid: any,
+    @CurrentUser() user: SessionUser
   ) {
-    return this.userService.findAllActive(Number(page), Number(limit), filter, userid);
+    return this.userService.findAllActive(Number(page), Number(limit), filter, user.id);
   }
 
   @Get('getLeads')

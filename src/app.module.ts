@@ -13,6 +13,9 @@ import { PaymentModule } from './payment/payment.module';
 import { ReportModule } from './report/report.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { SessionModule } from './session/session.module';
+import { SessionAuthGuard } from './session/session-auth.guard';
+import { SessionSerializer } from './session/session-serializer.service';
+import { SessionService } from './session/session.service';
 
 @Module({
   imports: [
@@ -42,6 +45,6 @@ import { SessionModule } from './session/session.module';
     SessionModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, SessionAuthGuard, SessionSerializer, SessionService],
 })
 export class AppModule {}

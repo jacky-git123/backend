@@ -11,6 +11,7 @@ import { UserService } from 'src/user/user.service';
 import { RunningNumberGenerator } from 'src/common/utils';
 import { SessionService } from 'src/session/session.service';
 import { SessionSerializer } from 'src/session/session-serializer.service';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { SessionSerializer } from 'src/session/session-serializer.service';
       signOptions: { expiresIn: '1h' },
     }),
   ],
-  providers: [AuthService, UserService, LocalStrategy, JwtStrategy,RunningNumberGenerator, SessionService, SessionSerializer],
+  providers: [AuthService, UserService, LocalStrategy, JwtStrategy,RunningNumberGenerator, SessionService, SessionSerializer, SessionAuthGuard],
   controllers: [AuthController],
 })
 export class AuthModule {}

@@ -1,8 +1,10 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { GenerateReportDto } from './dto/report.dto';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
 
 @Controller('report')
+@UseGuards(SessionAuthGuard) 
 export class ReportController {
     constructor(
         private readonly reportService: ReportService, // Replace 'any' with the actual service type

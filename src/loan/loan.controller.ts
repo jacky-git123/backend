@@ -3,17 +3,22 @@ import { LoanService } from './loan.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
+import { SessionUser } from 'src/session/session.dto';
+import { CurrentUser } from 'src/session/current-user.decorator';
 
 @Controller('loan')
+@UseGuards(SessionAuthGuard) 
 export class LoanController {
   constructor(private readonly loanService: LoanService) {}
 
   @Get(':id')
   async findOne(
     @Param('id') id: string,
-    @Query('userid') userid: any
+    // @Query('userid') userid: any
+    @CurrentUser() user: SessionUser
   ) {
-    return this.loanService.findOne(id, userid);
+    return this.loanService.findOne(id, user.id);
   }
 
   @Get()
@@ -21,10 +26,11 @@ export class LoanController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('filter') filter: any,
-    @Query('userid') userid: any
+    // @Query('userid') userid: any
+    @CurrentUser() user: SessionUser
   ) {
     
-    return this.loanService.findAll(Number(page), Number(limit), filter, userid);
+    return this.loanService.findAll(Number(page), Number(limit), filter, user.id);
   }
 
   // @UseGuards(JwtAuthGuard)

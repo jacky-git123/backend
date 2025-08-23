@@ -5,15 +5,18 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { LocalAuthGuard } from 'src/auth/local-auth.guard';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { UserHierarchyService } from 'src/user/user-hierarchy-service.service';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
+import { CurrentUser } from 'src/session/current-user.decorator';
+import { SessionUser } from 'src/session/session.dto';
 
 @Controller('customer')
+@UseGuards(SessionAuthGuard) 
 export class CustomerController {
     constructor(
       private readonly customerService: CustomerService,
       private readonly userHierarchyService:UserHierarchyService
     ) {}
 
-  // @UseGuards(AuthGuard)
   @Post()
   async create(@Body() createCustomerDto: CreateCustomerDto, @Headers() headers: any) {
 
@@ -32,9 +35,10 @@ export class CustomerController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('filter') filter: any,
-    @Query('userid') userid: any,
+    @CurrentUser() user: SessionUser
   ) {
-    const authUserId = userid;
+    console.log('Authenticated user from session:', user);
+    const authUserId = user.id;
 
     const skip = (page - 1) * limit;
     return this.customerService.findAll(Number(skip), Number(limit), filter, authUserId);

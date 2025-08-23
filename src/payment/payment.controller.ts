@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
 
 @Controller('payment')
+@UseGuards(SessionAuthGuard) 
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
