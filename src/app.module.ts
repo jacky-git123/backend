@@ -12,6 +12,7 @@ import { LoanModule } from './loan/loan.module';
 import { PaymentModule } from './payment/payment.module';
 import { ReportModule } from './report/report.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { SessionModule } from './session/session.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ExpensesModule } from './expenses/expenses.module';
     PaymentModule,
     ReportModule,
     ExpensesModule,
+    SessionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

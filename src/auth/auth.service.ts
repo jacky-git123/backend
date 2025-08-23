@@ -3,12 +3,15 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { ChangePasswordDto } from '../user/dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
+import { LoginResponse, SessionUser } from 'src/session/session.dto';
+import { SessionService } from 'src/session/session.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
-    private jwtService: JwtService
+    private jwtService: JwtService,
+    private sessionService: SessionService,
   ) { }
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -18,13 +21,20 @@ export class AuthService {
     });
   }
 
-  async login(user: any) {
-    const payload = { email: user.email, sub: user.id, role: user.role };
+  async login(user: SessionUser, sessionId: string): Promise<LoginResponse> {
+    // Update user's login info and link session
+    await this.sessionService.updateUserLoginInfo(user.id, sessionId);
+
+    const sessionData = await this.sessionService.getSessionById(sessionId);
+
     return {
-      id:user.id,
-      name:user.name,
-      role:user.role,
-      access_token: this.jwtService.sign(payload),
+      message: 'Login successful',
+      user,
+      sessionInfo: {
+        sessionId,
+        expiresAt: sessionData.expiresAt,
+        createdAt: sessionData.createdAt,
+      },
     };
   }
   

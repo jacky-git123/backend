@@ -9,6 +9,7 @@ import { LocalStrategy } from './local.strategy';
 import { JwtStrategy } from './jwt.strategy';
 import { UserService } from 'src/user/user.service';
 import { RunningNumberGenerator } from 'src/common/utils';
+import { SessionService } from 'src/session/session.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { RunningNumberGenerator } from 'src/common/utils';
       signOptions: { expiresIn: '1h' },
     }),
   ],
-  providers: [AuthService, UserService, LocalStrategy, JwtStrategy,RunningNumberGenerator],
+  providers: [AuthService, UserService, LocalStrategy, JwtStrategy,RunningNumberGenerator, SessionService],
   controllers: [AuthController],
 })
 export class AuthModule {}

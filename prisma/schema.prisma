@@ -201,6 +201,11 @@ model user {
   // Relations: Loans where this user is a supervisor
   supervised_loans_1 loan[] @relation(name: "supervisor1") // Primary supervisor
   supervised_loans_2 loan[] @relation(name: "supervisor2") // Secondary supervisor
+
+  // Session tracking
+  last_login       DateTime? @db.Timestamp(6)
+  session_count    Int?     @default(0) @db.Integer
+  sessions          Session[] // User can have multiple sessions
 }
 
 enum Role {
@@ -243,3 +248,21 @@ model expenses {
   created_by       String?    @db.Uuid
   updated_by       String?    @db.Uuid
 }
+
+model Session {
+  id        String   @id @default(cuid()) @db.VarChar(128)
+  sid       String   @unique @db.VarChar(128)
+  data      Json     // Using Json type for better performance
+  expiresAt DateTime @map("expires") @db.Timestamp(6)
+  userId    String?  @db.Uuid // Optional: link sessions to users
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+  
+  // Optional relation to user
+  user      user?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+  @@index([expiresAt])
+  @@index([userId])
+}
+
