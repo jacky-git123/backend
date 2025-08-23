@@ -367,7 +367,7 @@ export class ReportService {
 
       // Calculate balance and finalBalance for each month
       Object.values(monthlyData).forEach(monthData => {
-        monthData.balance = monthData.totalPaymentOut - monthData.totalPaymentIn;
+        monthData.balance = monthData.totalPaymentIn - monthData.totalPaymentOut;
         monthData.finalBalance = monthData.balance - monthData.expense;
       });
 
