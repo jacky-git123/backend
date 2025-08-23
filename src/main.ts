@@ -37,7 +37,7 @@ async function bootstrap() {
   app.  use(
     session({
       store: prismaSessionStore,
-      secret: process.env.SESSION_SECRET || 'your-session-secret-here',
+      secret: process.env.SESSION_SECRET || 'Xr7$Qv9!pL2@dZm8',
       resave: false,
       saveUninitialized: false,
       rolling: true,
