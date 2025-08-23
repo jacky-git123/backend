@@ -20,6 +20,11 @@ export class SessionAuthGuard implements CanActivate {
 
     try {
       if (request.sessionID) {
+        const sessionData = await this.sessionService.getSessionById(request.sessionID);
+        // Check if session is expired
+        if (sessionData.expiresAt < new Date()) {
+          throw new UnauthorizedException('Session expired');
+        }
         // Refresh session activity - this extends the session expiry
         await this.sessionService.refreshSessionActivity(request.sessionID, request.user.id);
         
@@ -44,7 +49,7 @@ export class SessionAuthGuard implements CanActivate {
         console.error('Session validation failed:', sessionError);
         throw new UnauthorizedException('Session validation failed');
       }
-      
+
     }
 
     return true;
