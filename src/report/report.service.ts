@@ -390,7 +390,7 @@ export class ReportService {
           totalPaymentIn: cumulativePaymentIn,
           totalPaymentOut: cumulativePaymentOut,
           totalExpenses: cumulativeExpenses,
-          balance: cumulativePaymentOut - cumulativePaymentIn
+          balance: cumulativePaymentIn - cumulativePaymentOut
         };
       });
 

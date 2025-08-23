@@ -86,8 +86,9 @@ export class LoanController {
     @Body('userid') userid: string | undefined,
     @Body('page') page: number | undefined,
     @Body('limit') limit: number | undefined,
+    @Body('status') status: string | undefined,
   ) {
-    return this.loanService.getLoanChecksByAgent(agents, fromDate, toDate, userid, page, limit);
+    return this.loanService.getLoanChecksByAgent(agents, fromDate, toDate, userid, page, limit, status);
   }
 
 

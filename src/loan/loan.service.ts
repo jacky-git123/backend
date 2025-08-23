@@ -279,7 +279,8 @@ export class LoanService {
           estimated_profit: createLoanDto.estimated_profit?.toString(),
           loan_date: new Date(createLoanDto.loan_date + 'T00:00:00Z'),
           created_by: createLoanDto.userid,
-          updated_by: createLoanDto.userid
+          updated_by: createLoanDto.userid,
+          goodwill: createLoanDto.goodwill ? createLoanDto.goodwill.toString() : '0',
         },
       });
 
@@ -1063,7 +1064,7 @@ export class LoanService {
     });
   }
 
-  async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string, page: number = 1, limit: number = 10) {
+  async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string, page: number = 1, limit: number = 10, status?: string) {
     type LoanWithFlag = Awaited<ReturnType<typeof this.prisma.loan.findMany>>[number] & {
       hasOtherLoanPaymentInPeriod?: boolean;
       installment: Array<{
@@ -1086,28 +1087,34 @@ export class LoanService {
       nextInstallmentAmount?: string | null;
     };
 
+    const whereClause: any = {
+      loan_date: {
+        gte: fromDate ? new Date(fromDate) : undefined,
+        lte: toDate ? new Date(toDate) : undefined,
+      },
+      OR: [
+        { created_by: { in: agents } },
+        { supervisor: { in: agents } },
+        { supervisor_2: { in: agents } }
+      ],
+      deleted: false,
+    };
+
+    if (typeof status !== 'undefined' && status !== null && status !== '') {
+      whereClause.status = status;
+    }
+
     const loans = await this.prisma.loan.findMany({
       skip: (page - 1) * limit,
       take: limit,
-      where: {
-        loan_date : {
-          gte: fromDate ? new Date(fromDate) : undefined,
-          lte: toDate ? new Date(toDate) : undefined,
-        },
-        OR: [
-          { created_by: {in: agents} },
-          { supervisor: {in: agents} },
-          { supervisor_2: {in: agents} }
-        ],
-        deleted: false,
-      },
+      where: whereClause,
       include: {
-        customer: true,
-        installment: true,
-        user: true,
+      customer: true,
+      installment: true,
+      user: true,
       },
       orderBy: {
-        created_at: 'desc',
+      created_at: 'desc',
       },
     }) as LoanWithFlag[];
 

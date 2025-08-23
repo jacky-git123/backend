@@ -125,6 +125,8 @@ model loan {
   estimated_profit String?       @db.VarChar
   interest_amount  String?       @db.VarChar
   payment_per_term String?       @db.VarChar
+  goodwill         String?       @db.VarChar
+
   installment      installment[]
 
   created_at DateTime @default(now()) @db.Timestamp(6)

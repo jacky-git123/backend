@@ -15,4 +15,5 @@ export class CreateLoanDto {
     created_by: string;
     supervisor: string;
     supervisor_2?:string;
+    goodwill?:string;
 }
