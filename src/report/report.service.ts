@@ -327,7 +327,13 @@ export class ReportService {
           totalPaymentOut: 0,
           balance: 0,
           expense: getExpenseForMonth(userId, year, month),
-          finalBalance: 0
+          finalBalance: 0,
+          summaryPrevious: {
+            totalPaymentIn: 0,
+            totalPaymentOut: 0,
+            totalExpenses: 0,
+            balance: 0
+          }
         };
 
         // Move to next month
@@ -365,13 +371,35 @@ export class ReportService {
         monthData.finalBalance = monthData.balance - monthData.expense;
       });
 
-      // Return sorted by month
-      return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+      // Sort months chronologically
+      const sortedMonths = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+
+      // Calculate cumulative summaries (summaryPrevious)
+      let cumulativePaymentIn = 0;
+      let cumulativePaymentOut = 0;
+      let cumulativeExpenses = 0;
+
+      sortedMonths.forEach(monthData => {
+        // Add current month's values to cumulative totals
+        cumulativePaymentIn += monthData.totalPaymentIn;
+        cumulativePaymentOut += monthData.totalPaymentOut;
+        cumulativeExpenses += monthData.expense;
+
+        // Set summary for this month (including current month)
+        monthData.summaryPrevious = {
+          totalPaymentIn: cumulativePaymentIn,
+          totalPaymentOut: cumulativePaymentOut,
+          totalExpenses: cumulativeExpenses,
+          balance: cumulativePaymentOut - cumulativePaymentIn
+        };
+      });
+
+      return sortedMonths;
     };
 
     // Generate response for each user
     const result: UserExpensesResponse[] = users.map(user => ({
-      agentId: user.id || user.generate_id, // Use generate_id if available, fallback to id
+      agentId: user.generate_id || user.id, // Use generate_id if available, fallback to id
       agentName: user.name || '',
       monthlyBreakdown: generateMonthlyBreakdown(user.id)
     }));

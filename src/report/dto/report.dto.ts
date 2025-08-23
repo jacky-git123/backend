@@ -100,6 +100,13 @@ export interface MonthlyPaymentData {
   }[];
 }
 
+export interface SummaryPrevious {
+  totalPaymentIn: number;  // Sum of all payments received before this month Including this month
+  totalPaymentOut: number; // Sum of all payments made before this month Including this month
+  totalExpenses: number;   // Sum of all expenses before this month Including this month
+  balance: number;         // summaryPrevious totalPaymentOut - summaryPrevious totalPaymentIn
+}
+
 export interface MonthlyBreakdown {
   month: string; // Format: "YYYY-MM"
   totalPaymentIn: number;
@@ -107,6 +114,7 @@ export interface MonthlyBreakdown {
   balance: number;
   expense: number;
   finalBalance: number;
+  summaryPrevious: SummaryPrevious;
 }
 
 export interface UserExpensesResponse {
