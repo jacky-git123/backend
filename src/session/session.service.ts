@@ -214,6 +214,58 @@ export class SessionService {
   }
 
   // Fixed linkSessionToUser with retry logic and better error handling
+  // New method: Refresh session activity and extend expiry
+  async refreshSessionActivity(sessionId: string, userId: string) {
+    try {
+      const newExpiryTime = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+      
+      await this.prisma.session.update({
+        where: { sid: sessionId },
+        data: {
+          expiresAt: newExpiryTime,
+          updatedAt: new Date(),
+          // Optionally update userId if not set
+          userId: userId,
+        },
+      });
+
+      console.log(`Session ${sessionId} refreshed, new expiry: ${newExpiryTime}`);
+    } catch (error) {
+      console.error(`Failed to refresh session ${sessionId}:`, error);
+      throw error;
+    }
+  }
+
+  // Enhanced method: Track user activity and session metrics
+  async trackUserActivity(userId: string, sessionId: string, activityType: string = 'api_call') {
+    try {
+      // Update user's last activity
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          last_login: new Date(), // Update last seen time
+        },
+      });
+
+      // Refresh session
+      await this.refreshSessionActivity(sessionId, userId);
+
+      // Optional: Track activity in a separate table for analytics
+      // await this.prisma.userActivity.create({
+      //   data: {
+      //     userId,
+      //     sessionId,
+      //     activityType,
+      //     timestamp: new Date(),
+      //   },
+      // });
+
+    } catch (error) {
+      console.error('Failed to track user activity:', error);
+      // Don't throw error as this shouldn't break the main flow
+    }
+  }
+
   async linkSessionToUser(sessionId: string, userId: string, maxRetries: number = 3) {
     let retryCount = 0;
     

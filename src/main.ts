@@ -15,6 +15,7 @@ async function bootstrap() {
     'https://www.cs-summer.com'
   ];
 
+  // Single CORS configuration
   app.enableCors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl)
@@ -47,6 +48,8 @@ async function bootstrap() {
         sameSite: 'lax',
       },
       name: 'sessionId',
+      // Custom touch function for better performance
+      unset: 'destroy',
     }),
   );
 

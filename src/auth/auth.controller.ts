@@ -1,9 +1,10 @@
-import { Body, Controller, Post, UseGuards, Request, Put, Headers, Query, Req } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Request, Put, Headers, Query, Req, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ChangePasswordDto } from '../user/dto/change-password.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { LoginResponse, SessionUser } from 'src/session/session.dto';
 import { SessionService } from 'src/session/session.service';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -103,8 +104,9 @@ export class AuthController {
     });
   }
 
-  // Optional: Endpoint to get current session info
-  @Post('session-info')
+  // Enhanced: Endpoint to get current session info with remaining time
+  @Get('session-info')
+  @UseGuards(SessionAuthGuard)
   async getSessionInfo(@Req() req: any) {
     if (!req.user) {
       return { authenticated: false };
@@ -112,10 +114,25 @@ export class AuthController {
 
     try {
       const sessionData = await this.sessionService.getSessionById(req.sessionID);
+      const now = new Date();
+      const remainingTime = sessionData.expiresAt.getTime() - now.getTime();
+      const remainingMinutes = Math.floor(remainingTime / (1000 * 60));
+      const remainingSeconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
+
       return {
         authenticated: true,
         user: req.user,
-        session: sessionData,
+        session: {
+          sessionId: sessionData.sessionId,
+          expiresAt: sessionData.expiresAt,
+          createdAt: sessionData.createdAt,
+          remainingTime: {
+            milliseconds: remainingTime,
+            minutes: remainingMinutes,
+            seconds: remainingSeconds,
+            isExpiringSoon: remainingMinutes < 1, // Less than 1 minute
+          },
+        },
       };
     } catch (error) {
       return {
@@ -123,6 +140,26 @@ export class AuthController {
         user: req.user,
         sessionId: req.sessionID,
         error: 'Could not fetch session details',
+      };
+    }
+  }
+
+  // New: Endpoint to manually refresh session
+  @Post('refresh-session')
+  @UseGuards(SessionAuthGuard)
+  async refreshSession(@Req() req: any) {
+    try {
+      await this.sessionService.refreshSessionActivity(req.sessionID, req.user.id);
+      
+      return {
+        message: 'Session refreshed successfully',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        remainingTime: 5 * 60 * 1000, // 5 minutes in milliseconds
+      };
+    } catch (error) {
+      return {
+        message: 'Session refresh failed',
+        error: error.message,
       };
     }
   }
