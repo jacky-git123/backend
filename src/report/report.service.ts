@@ -371,7 +371,7 @@ export class ReportService {
 
     // Generate response for each user
     const result: UserExpensesResponse[] = users.map(user => ({
-      agentId: user.generate_id || user.id, // Use generate_id if available, fallback to id
+      agentId: user.id || user.generate_id, // Use generate_id if available, fallback to id
       agentName: user.name || '',
       monthlyBreakdown: generateMonthlyBreakdown(user.id)
     }));
