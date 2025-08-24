@@ -10,11 +10,13 @@ export class SessionAuthGuard implements CanActivate {
     
     // Check if user is authenticated via session
     if (!request.isAuthenticated || !request.isAuthenticated()) {
+      console.log('User not authenticated');
       throw new UnauthorizedException('Not authenticated');
     }
 
     // Check if user exists in request (populated by passport session)
     if (!request.user || !request.user.id) {
+      console.log('No user found in session');
       throw new UnauthorizedException('Invalid session - no user found');
     }
 
@@ -23,6 +25,7 @@ export class SessionAuthGuard implements CanActivate {
         const sessionData = await this.sessionService.getSessionById(request.sessionID);
         // Check if session is expired
         if (sessionData.expiresAt < new Date()) {
+          console.log('Session expired');
           throw new UnauthorizedException('Session expired');
         }
         // Refresh session activity - this extends the session expiry
