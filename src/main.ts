@@ -45,7 +45,7 @@ async function bootstrap() {
         maxAge: 5 * 60 * 1000, // 5 minutes
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'strict',
       },
       name: 'sessionId',
       // Custom touch function for better performance
