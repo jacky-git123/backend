@@ -245,7 +245,7 @@ export class LoanService {
     };
   }
 
-  async create(createLoanDto) {
+  async create(createLoanDto, authUserId: string) {
     const generateId = await this.utilService.generateUniqueNumber('LN');
     const calculateRepaymentDates = await this.getInstallmentDates(
       createLoanDto.repayment_date,
@@ -278,8 +278,8 @@ export class LoanService {
           actual_profit: createLoanDto.actual_profit?.toString(),
           estimated_profit: createLoanDto.estimated_profit?.toString(),
           loan_date: new Date(createLoanDto.loan_date + 'T00:00:00Z'),
-          created_by: createLoanDto.userid,
-          updated_by: createLoanDto.userid,
+          created_by: authUserId,
+          updated_by: authUserId,
           goodwill: createLoanDto.goodwill ? createLoanDto.goodwill.toString() : '0',
         },
       });
