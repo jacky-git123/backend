@@ -18,14 +18,14 @@ export class CustomerController {
     ) {}
 
   @Post()
-  async create(@Body() createCustomerDto: CreateCustomerDto, @Headers() headers: any) {
+  async create(@Body() createCustomerDto: CreateCustomerDto, @Headers() headers: any, @CurrentUser() user: SessionUser) {
 
     if (headers.auth_user) {
       createCustomerDto.created_by = headers.user_id;
       createCustomerDto.updated_by = headers.user_id;
     }else {
-      createCustomerDto.created_by = createCustomerDto.userid;
-      createCustomerDto.updated_by = createCustomerDto.userid;
+      createCustomerDto.created_by = createCustomerDto.userid || user.id;
+      createCustomerDto.updated_by = createCustomerDto.userid || user.id;
     }
     return this.customerService.create(createCustomerDto);
   }
