@@ -6,11 +6,16 @@ import {
   HttpStatus,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/expenses.dto';
+import { SessionAuthGuard } from 'src/session/session-auth.guard';
+import { SessionUser } from 'src/session/session.dto';
+import { CurrentUser } from 'src/session/current-user.decorator';
 
 @Controller('expenses')
+@UseGuards(SessionAuthGuard) 
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
@@ -49,10 +54,11 @@ export class ExpensesController {
   
 
   @Post()
-async createOrUpdateExpense(@Body() payload: any) {
+async createOrUpdateExpense(@Body() payload: any, @CurrentUser() user: SessionUser) {
   try {
     const createExpenseDto = payload[0]; // Get the actual data
-    const agentUserId = createExpenseDto.user_id;
+    const agentUserId = user.id; // Use the authenticated user's ID
+    createExpenseDto.created_by= user.id;
     const year = createExpenseDto.year;
 
     const existingExpense = await this.expensesService.findByUserIdAndYear(agentUserId, year);

@@ -309,7 +309,7 @@ export class LoanService {
           balance: (Number(createLoanDto.principal_amount) - (Number(createLoanDto.deposit_amount)))?.toString(),
           account_details: 'Loan Disbursement',
           loan: { connect: { id: loadData.id } },
-          created_by: createLoanDto.userid,
+          created_by: authUserId,
         },
       });
 
