@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GenerateAgentReportDto, GenerateReportDto, GetPaymentLoanDataDto, GetUserExpensesDto, MonthlyBreakdown, MonthlyPaymentData, MonthlyPaymentSummary, PaymentWithLoan, UserExpensesResponse } from './dto/report.dto';
+import { GenerateAgentReportDto, GenerateReportDto, GetPaymentLoanDataDto, GetSalesReportDto, GetUserExpensesDto, MonthlyBreakdown, MonthlyPaymentData, MonthlyPaymentSummary, PaymentWithLoan, SalesReportRow, UserExpensesResponse } from './dto/report.dto';
 import { PrismaService } from 'nestjs-prisma';
 
 @Injectable()
@@ -411,5 +411,208 @@ export class ReportService {
   async getUserExpensesByMonth(data: GetUserExpensesDto): Promise<UserExpensesResponse[]> {
     // This method now returns the same format as getUserExpenses
     return this.getUserExpenses(data);
+  }
+
+  async getSalesReport(data: GetSalesReportDto) {
+    const { agents, fromDate, toDate } = data;
+    
+    const fromDateObj = new Date(fromDate);
+    const toDateObj = new Date(toDate);
+    
+    const salesReport: SalesReportRow[] = [];
+
+    for (const agentId of agents) {
+      const reportRow = await this.generateAgentReport(agentId, fromDateObj, toDateObj);
+      salesReport.push(reportRow);
+    }
+
+    return salesReport;
+
+  }
+  private async generateAgentReport(
+    agentId: string, 
+    startDate: Date, 
+    endDate: Date
+  ): Promise<SalesReportRow> {
+    
+    // Get agent details
+    const agent = await this.prisma.user.findUnique({
+      where: { id: agentId },
+      select: { name: true, email: true }
+    });
+
+    const agentName = agent?.name || agent?.email || 'Unknown Agent';
+
+    // Get all customers created by this agent in the date range (new customers)
+    const newCustomers = await this.prisma.customer.findMany({
+      where: {
+        created_by: agentId,
+        created_at: {
+          gte: startDate,
+          lte: endDate
+        },
+        deleted: { not: true }
+      },
+      select: { 
+        id: true, 
+        created_at: true,
+        loan: {
+          where: {
+            deleted: { not: true }
+          },
+          select: {
+            id: true,
+            principal_amount: true,
+            estimated_profit: true,
+            actual_profit: true,
+            payment: {
+              select: {
+                amount: true,
+                type: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Get all loans created by this agent in the date range
+    const allLoansInPeriod = await this.prisma.loan.findMany({
+      where: {
+        created_by: agentId,
+        created_at: {
+          gte: startDate,
+          lte: endDate
+        },
+        deleted: { not: true }
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            created_at: true,
+            created_by: true
+          }
+        },
+        payment: {
+          select: {
+            amount: true,
+            type: true
+          }
+        }
+      }
+    });
+
+    // Categorize customers and loans
+    const newCustomerIds = new Set(newCustomers.map(c => c.id));
+    
+    const newCustomerLoans = allLoansInPeriod.filter(loan => 
+      newCustomerIds.has(loan.customer_id || '')
+    );
+    
+    const oldCustomerLoans = allLoansInPeriod.filter(loan => 
+      !newCustomerIds.has(loan.customer_id || '') && loan.customer_id
+    );
+
+    // Get unique old customers
+    const oldCustomerIds = new Set(
+      oldCustomerLoans
+        .map(loan => loan.customer_id)
+        .filter(id => id !== null)
+    );
+
+    // Calculate metrics
+    const newCustomerMetrics = this.calculateLoanMetrics(newCustomerLoans);
+    const oldCustomerMetrics = this.calculateLoanMetrics(oldCustomerLoans);
+    const totalMetrics = this.calculateLoanMetrics(allLoansInPeriod);
+
+    // Get total unique customers for this agent in the period
+    const allCustomerIds = new Set([
+      ...newCustomerIds,
+      ...oldCustomerIds
+    ]);
+
+    return {
+      agent: agentName,
+      newCustomerCount: newCustomers.length,
+      totalLoanCount: allLoansInPeriod.length,
+      totalCustomerCount: allCustomerIds.size,
+      
+      // Total Customer metrics (all loans)
+      totalCustomerCountAnyLoan: allCustomerIds.size,
+      totalLoanCountAnyLoan: allLoansInPeriod.length,
+      totalInSumAnyLoan: totalMetrics.totalIn,
+      totalOutSumAnyLoan: totalMetrics.totalOut,
+      estimateProfitSumAnyLoan: totalMetrics.estimatedProfit,
+      actualProfitSumAnyLoan: totalMetrics.actualProfit,
+      
+      // Total New Customer metrics
+      totalNewCustomerCount: newCustomers.length,
+      totalLoanCountNewCustomer: newCustomerLoans.length,
+      totalInSumNewCustomer: newCustomerMetrics.totalIn,
+      totalOutSumNewCustomer: newCustomerMetrics.totalOut,
+      estimateProfitSumNewCustomer: newCustomerMetrics.estimatedProfit,
+      actualProfitSumNewCustomer: newCustomerMetrics.actualProfit,
+      
+      // Total Old Customer metrics
+      totalOldCustomerCount: oldCustomerIds.size,
+      totalLoanCountOldCustomer: oldCustomerLoans.length,
+      totalInSumOldCustomer: oldCustomerMetrics.totalIn,
+      totalOutSumOldCustomer: oldCustomerMetrics.totalOut,
+      estimateProfitSumOldCustomer: oldCustomerMetrics.estimatedProfit,
+      actualProfitSumOldCustomer: oldCustomerMetrics.actualProfit,
+      
+      // Combined profits
+      combinedEstimateProfit: totalMetrics.estimatedProfit,
+      combinedActualProfit: totalMetrics.actualProfit
+    };
+  }
+
+  private calculateLoanMetrics(loans: any[]) {
+    let totalIn = 0;
+    let totalOut = 0;
+    let estimatedProfit = 0;
+    let actualProfit = 0;
+
+    for (const loan of loans) {
+      // Principal amount represents money going out (loan disbursed)
+      const principalAmount = parseFloat(loan.principal_amount || '0');
+      totalOut += principalAmount;
+
+      // Payments represent money coming in
+      const paymentsTotal = loan.payment?.reduce((sum: number, payment: any) => {
+        return sum + parseFloat(payment.amount || '0');
+      }, 0) || 0;
+      totalIn += paymentsTotal;
+
+      // Profits
+      estimatedProfit += parseFloat(loan.estimated_profit || '0');
+      actualProfit += parseFloat(loan.actual_profit || '0');
+    }
+
+    return {
+      totalIn: Math.round(totalIn * 100) / 100, // Round to 2 decimal places
+      totalOut: Math.round(totalOut * 100) / 100,
+      estimatedProfit: Math.round(estimatedProfit * 100) / 100,
+      actualProfit: Math.round(actualProfit * 100) / 100
+    };
+  }
+
+  // Additional helper method to get agent summary
+  async getAgentSummary(agentIds: string[], startDate: Date, endDate: Date) {
+    const agents = await this.prisma.user.findMany({
+      where: {
+        id: { in: agentIds },
+        deleted: { not: true }
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true
+      }
+    });
+
+    return agents;
   }
 }

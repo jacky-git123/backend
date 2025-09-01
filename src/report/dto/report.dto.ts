@@ -85,6 +85,12 @@ export interface GetUserExpensesDto {
   toDate: string;
 }
 
+export interface GetSalesReportDto {
+  agents: string[];
+  fromDate: string;
+  toDate: string;
+}
+
 export interface MonthlyPaymentData {
   month: string;
   monthName: string;
@@ -121,4 +127,39 @@ export interface UserExpensesResponse {
   agentId: string;
   agentName: string;
   monthlyBreakdown: MonthlyBreakdown[];
+}
+
+export interface SalesReportRow {
+  agent: string;
+  newCustomerCount: number;
+  totalLoanCount: number;
+  totalCustomerCount: number;
+  
+  // Total Customer metrics
+  totalCustomerCountAnyLoan: number;
+  totalLoanCountAnyLoan: number;
+  totalInSumAnyLoan: number;
+  totalOutSumAnyLoan: number;
+  estimateProfitSumAnyLoan: number;
+  actualProfitSumAnyLoan: number;
+  
+  // Total New Customer metrics
+  totalNewCustomerCount: number;
+  totalLoanCountNewCustomer: number;
+  totalInSumNewCustomer: number;
+  totalOutSumNewCustomer: number;
+  estimateProfitSumNewCustomer: number;
+  actualProfitSumNewCustomer: number;
+  
+  // Total Old Customer metrics
+  totalOldCustomerCount: number;
+  totalLoanCountOldCustomer: number;
+  totalInSumOldCustomer: number;
+  totalOutSumOldCustomer: number;
+  estimateProfitSumOldCustomer: number;
+  actualProfitSumOldCustomer: number;
+  
+  // Combined Estimate and Actual Profit
+  combinedEstimateProfit: number;
+  combinedActualProfit: number;
 }

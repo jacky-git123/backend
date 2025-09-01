@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { SessionAuthGuard } from 'src/session/session-auth.guard';
-import { GenerateAgentReportDto, GenerateReportDto, GetPaymentLoanDataDto } from './dto/report.dto';
+import { GenerateAgentReportDto, GenerateReportDto, GetPaymentLoanDataDto, GetSalesReportDto } from './dto/report.dto';
 
 @Controller('report')
 @UseGuards(SessionAuthGuard) 
@@ -29,5 +29,12 @@ export class ReportController {
     // This method will handle the logic for generating agent-specific reports
     // You can call methods from the reportService to fetch data and format it as needed
     return this.reportService.getUserExpensesByMonth(generateAgentReportDto);
+  }
+
+  @Post('sales-report-summary')
+  getSalesReport(@Body() generateReportDto: GetSalesReportDto) {
+    // This method will handle the logic for generating sales reports
+    // You can call methods from the reportService to fetch data and format it as needed
+    return this.reportService.getSalesReport(generateReportDto);
   }
 }
