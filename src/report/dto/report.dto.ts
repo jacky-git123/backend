@@ -137,8 +137,8 @@ export interface SalesReportRow {
   totalCustomerCount: number;
   
   // Total Customer metrics
-  totalCustomerCountAnyLoan: number;
-  // totalLoanCountAnyLoan: number;
+  totalCustomerCountLoan: number;
+  totalLoanCountLoan: number;
   // totalInSumAnyLoan: number;
   // totalOutSumAnyLoan: number;
   // estimateProfitSumAnyLoan: number;

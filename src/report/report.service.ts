@@ -462,7 +462,6 @@ export class ReportService {
         AND "created_at" >= '${startDate.toISOString()}'
         AND "created_at" <= '${endDate.toISOString()}'
       `);
-    const newCustomers = newCustomersDateFilterRaw || [];  
 
     // Get all loans created by this agent in the date range
     const allLoans = await this.prisma.loan.findMany({
@@ -511,17 +510,20 @@ export class ReportService {
         }
       }
     });
+    
 
 
     return {
       agentId: agentId,
       agent: agentName,
+
       newCustomerCount: newCustomersDateFilterRaw.length,
       totalLoanCount: allLoans.length,
       totalCustomerCount: newCustomersRaw.length,
 
       // Total New Customer metrics
-      totalCustomerCountAnyLoan: new Set(allLoansPeriod.map(loan => loan.customer_id)).size,
+      totalCustomerCountLoan: new Set(allLoansPeriod.map(loan => loan.customer_id)).size,
+      totalLoanCountLoan: allLoansPeriod.length
       
     };
   }
