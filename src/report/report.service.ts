@@ -441,7 +441,7 @@ export class ReportService {
       select: { name: true, email: true }
     });
 
-    const agentName = agent?.name || agent?.email || 'Unknown Agent';
+    const agentName = agent?.name || agent?.email;
 
     // Get all customers created by this agent in the date range (new customers)
     const newCustomers = await this.prisma.customer.findMany({
@@ -579,9 +579,12 @@ export class ReportService {
       const principalAmount = parseFloat(loan.principal_amount || '0');
       totalOut += principalAmount;
 
-      // Payments represent money coming in
+      // Payments represent money coming in (only type 'In')
       const paymentsTotal = loan.payment?.reduce((sum: number, payment: any) => {
-        return sum + parseFloat(payment.amount || '0');
+        if (payment.type === 'In') {
+          return sum + parseFloat(payment.amount || '0');
+        }
+        return sum;
       }, 0) || 0;
       totalIn += paymentsTotal;
 
