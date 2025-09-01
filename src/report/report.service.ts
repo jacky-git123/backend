@@ -412,4 +412,64 @@ export class ReportService {
     // This method now returns the same format as getUserExpenses
     return this.getUserExpenses(data);
   }
+
+  async getAgentSalesReport(agentIds: string[], dateFrom: Date, dateTo: Date) {
+    const results = [];
+
+    for (const agentId of agentIds) {
+      // Customers created in date range by this agent
+      const customers = await this.prisma.customer.findMany({
+        where: {
+          created_at: { gte: dateFrom, lte: dateTo },
+          deleted: false,
+        },
+        include: { loan: true },
+      });
+
+      const newCustomerIds = customers.map(c => c.id);
+
+      // Loans by this agent in date range
+      const loans = await this.prisma.loan.findMany({
+        where: {
+          supervisor: agentId,
+          loan_date: { gte: dateFrom, lte: dateTo },
+          deleted: false,
+        },
+      });
+
+      const totalLoanCount = loans.length;
+      const totalCustomer = customers.length;
+
+      const oldCustomers = customers.filter(c => !newCustomerIds.includes(c.id));
+
+      // helper fn
+      const aggregateLoans = (customerIds: string[]) => {
+        const custLoans = loans.filter(l => customerIds.includes(l.customer_id));
+        return {
+          totalCustomerCount: customerIds.length,
+          totalLoanCount: custLoans.length,
+          totalIN: custLoans.reduce((sum, l) => sum + (Number(l.amount_given) || 0), 0),
+          totalOUT: custLoans.reduce((sum, l) => sum + (Number(l.deposit_amount) || 0), 0),
+          estimateProfit: custLoans.reduce((sum, l) => sum + (Number(l.estimated_profit) || 0), 0),
+          actualProfit: custLoans.reduce((sum, l) => sum + (Number(l.actual_profit) || 0), 0),
+        };
+      };
+
+      const totalNewCustomer = aggregateLoans(newCustomerIds);
+      const totalOldCustomer = aggregateLoans(oldCustomers.map(c => c.id));
+
+      results.push({
+        agentId,
+        newCustomer: newCustomerIds.length,
+        totalLoanCount,
+        totalCustomer,
+        totalNewCustomer,
+        totalOldCustomer,
+        estimateProfit: totalNewCustomer.estimateProfit + totalOldCustomer.estimateProfit,
+        actualProfit: totalNewCustomer.actualProfit + totalOldCustomer.actualProfit,
+      });
+    }
+
+    return results;
+  }
 }

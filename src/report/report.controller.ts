@@ -30,4 +30,13 @@ export class ReportController {
     // You can call methods from the reportService to fetch data and format it as needed
     return this.reportService.getUserExpensesByMonth(generateAgentReportDto);
   }
+
+  @Post('agent-performance')
+  async getAgentPerformance(@Body() dto: GetPaymentLoanDataDto) {
+    return this.reportService.getAgentSalesReport(
+      dto.agents,
+      new Date(dto.fromDate),
+      new Date(dto.toDate),
+    );
+  }
 }
