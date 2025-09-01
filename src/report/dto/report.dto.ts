@@ -130,6 +130,7 @@ export interface UserExpensesResponse {
 }
 
 export interface SalesReportRow {
+  agentId: string;
   agent: string;
   newCustomerCount: number;
   totalLoanCount: number;
@@ -137,29 +138,29 @@ export interface SalesReportRow {
   
   // Total Customer metrics
   totalCustomerCountAnyLoan: number;
-  totalLoanCountAnyLoan: number;
-  totalInSumAnyLoan: number;
-  totalOutSumAnyLoan: number;
-  estimateProfitSumAnyLoan: number;
-  actualProfitSumAnyLoan: number;
+  // totalLoanCountAnyLoan: number;
+  // totalInSumAnyLoan: number;
+  // totalOutSumAnyLoan: number;
+  // estimateProfitSumAnyLoan: number;
+  // actualProfitSumAnyLoan: number;
   
   // Total New Customer metrics
-  totalNewCustomerCount: number;
-  totalLoanCountNewCustomer: number;
-  totalInSumNewCustomer: number;
-  totalOutSumNewCustomer: number;
-  estimateProfitSumNewCustomer: number;
-  actualProfitSumNewCustomer: number;
+  // totalNewCustomerCount: number;
+  // totalLoanCountNewCustomer: number;
+  // totalInSumNewCustomer: number;
+  // totalOutSumNewCustomer: number;
+  // estimateProfitSumNewCustomer: number;
+  // actualProfitSumNewCustomer: number;
   
   // Total Old Customer metrics
-  totalOldCustomerCount: number;
-  totalLoanCountOldCustomer: number;
-  totalInSumOldCustomer: number;
-  totalOutSumOldCustomer: number;
-  estimateProfitSumOldCustomer: number;
-  actualProfitSumOldCustomer: number;
+  // totalOldCustomerCount: number;
+  // totalLoanCountOldCustomer: number;
+  // totalInSumOldCustomer: number;
+  // totalOutSumOldCustomer: number;
+  // estimateProfitSumOldCustomer: number;
+  // actualProfitSumOldCustomer: number;
   
   // Combined Estimate and Actual Profit
-  combinedEstimateProfit: number;
-  combinedActualProfit: number;
+  // combinedEstimateProfit: number;
+  // combinedActualProfit: number;
 }

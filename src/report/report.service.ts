@@ -444,40 +444,49 @@ export class ReportService {
     const agentName = agent?.name || agent?.email;
 
     // Get all customers created by this agent in the date range (new customers)
-    const newCustomers = await this.prisma.customer.findMany({
+    const newCustomersRaw = await this.prisma.$queryRawUnsafe<any[]>(`
+        SELECT * FROM "customer"
+        WHERE "deleted" IS FALSE
+        AND EXISTS (
+          SELECT FROM jsonb_array_elements("leadUser") AS elem
+          WHERE elem->>'lead1' = '${agentId}'
+        )
+      `);
+    const newCustomersDateFilterRaw = await this.prisma.$queryRawUnsafe<any[]>(`
+        SELECT * FROM "customer"
+        WHERE "deleted" IS FALSE
+        AND EXISTS (
+          SELECT FROM jsonb_array_elements("leadUser") AS elem
+          WHERE elem->>'lead1' = '${agentId}'
+        )
+        AND "created_at" >= '${startDate.toISOString()}'
+        AND "created_at" <= '${endDate.toISOString()}'
+      `);
+    const newCustomers = newCustomersDateFilterRaw || [];  
+
+    // Get all loans created by this agent in the date range
+    const allLoans = await this.prisma.loan.findMany({
       where: {
         created_by: agentId,
-        created_at: {
-          gte: startDate,
-          lte: endDate
-        },
         deleted: { not: true }
       },
-      select: { 
-        id: true, 
-        created_at: true,
-        loan: {
-          where: {
-            deleted: { not: true }
-          },
+      include: {
+        customer: {
           select: {
             id: true,
-            principal_amount: true,
-            estimated_profit: true,
-            actual_profit: true,
-            payment: {
-              select: {
-                amount: true,
-                type: true
-              }
-            }
+            created_at: true,
+            created_by: true
+          }
+        },
+        payment: {
+          select: {
+            amount: true,
+            type: true
           }
         }
       }
     });
-
-    // Get all loans created by this agent in the date range
-    const allLoansInPeriod = await this.prisma.loan.findMany({
+    const allLoansPeriod = await this.prisma.loan.findMany({
       where: {
         created_by: agentId,
         created_at: {
@@ -503,68 +512,17 @@ export class ReportService {
       }
     });
 
-    // Categorize customers and loans
-    const newCustomerIds = new Set(newCustomers.map(c => c.id));
-    
-    const newCustomerLoans = allLoansInPeriod.filter(loan => 
-      newCustomerIds.has(loan.customer_id || '')
-    );
-    
-    const oldCustomerLoans = allLoansInPeriod.filter(loan => 
-      !newCustomerIds.has(loan.customer_id || '') && loan.customer_id
-    );
-
-    // Get unique old customers
-    const oldCustomerIds = new Set(
-      oldCustomerLoans
-        .map(loan => loan.customer_id)
-        .filter(id => id !== null)
-    );
-
-    // Calculate metrics
-    const newCustomerMetrics = this.calculateLoanMetrics(newCustomerLoans);
-    const oldCustomerMetrics = this.calculateLoanMetrics(oldCustomerLoans);
-    const totalMetrics = this.calculateLoanMetrics(allLoansInPeriod);
-
-    // Get total unique customers for this agent in the period
-    const allCustomerIds = new Set([
-      ...newCustomerIds,
-      ...oldCustomerIds
-    ]);
 
     return {
+      agentId: agentId,
       agent: agentName,
-      newCustomerCount: newCustomers.length,
-      totalLoanCount: allLoansInPeriod.length,
-      totalCustomerCount: allCustomerIds.size,
-      
-      // Total Customer metrics (all loans)
-      totalCustomerCountAnyLoan: allCustomerIds.size,
-      totalLoanCountAnyLoan: allLoansInPeriod.length,
-      totalInSumAnyLoan: totalMetrics.totalIn,
-      totalOutSumAnyLoan: totalMetrics.totalOut,
-      estimateProfitSumAnyLoan: totalMetrics.estimatedProfit,
-      actualProfitSumAnyLoan: totalMetrics.actualProfit,
-      
+      newCustomerCount: newCustomersDateFilterRaw.length,
+      totalLoanCount: allLoans.length,
+      totalCustomerCount: newCustomersRaw.length,
+
       // Total New Customer metrics
-      totalNewCustomerCount: newCustomers.length,
-      totalLoanCountNewCustomer: newCustomerLoans.length,
-      totalInSumNewCustomer: newCustomerMetrics.totalIn,
-      totalOutSumNewCustomer: newCustomerMetrics.totalOut,
-      estimateProfitSumNewCustomer: newCustomerMetrics.estimatedProfit,
-      actualProfitSumNewCustomer: newCustomerMetrics.actualProfit,
+      totalCustomerCountAnyLoan: new Set(allLoansPeriod.map(loan => loan.customer_id)).size,
       
-      // Total Old Customer metrics
-      totalOldCustomerCount: oldCustomerIds.size,
-      totalLoanCountOldCustomer: oldCustomerLoans.length,
-      totalInSumOldCustomer: oldCustomerMetrics.totalIn,
-      totalOutSumOldCustomer: oldCustomerMetrics.totalOut,
-      estimateProfitSumOldCustomer: oldCustomerMetrics.estimatedProfit,
-      actualProfitSumOldCustomer: oldCustomerMetrics.actualProfit,
-      
-      // Combined profits
-      combinedEstimateProfit: totalMetrics.estimatedProfit,
-      combinedActualProfit: totalMetrics.actualProfit
     };
   }
 
@@ -579,12 +537,9 @@ export class ReportService {
       const principalAmount = parseFloat(loan.principal_amount || '0');
       totalOut += principalAmount;
 
-      // Payments represent money coming in (only type 'In')
+      // Payments represent money coming in
       const paymentsTotal = loan.payment?.reduce((sum: number, payment: any) => {
-        if (payment.type === 'In') {
-          return sum + parseFloat(payment.amount || '0');
-        }
-        return sum;
+        return sum + parseFloat(payment.amount || '0');
       }, 0) || 0;
       totalIn += paymentsTotal;
 
