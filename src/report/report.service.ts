@@ -413,120 +413,244 @@ export class ReportService {
     return this.getUserExpenses(data);
   }
 
+  // async getSalesReport(data: GetSalesReportDto) {
+  //   const { agents, fromDate, toDate } = data;
+    
+  //   const fromDateObj = new Date(fromDate);
+  //   const toDateObj = new Date(toDate);
+    
+  //   const salesReport: SalesReportRow[] = [];
+
+  //   for (const agentId of agents) {
+  //     const reportRow = await this.generateAgentReport(agentId, fromDateObj, toDateObj);
+  //     salesReport.push(reportRow);
+  //   }
+
+  //   return salesReport;
+
+  // }
+  // private async generateAgentReport(
+  //   agentId: string, 
+  //   startDate: Date, 
+  //   endDate: Date
+  // ): Promise<SalesReportRow> {
+    
+  //   // Get agent details
+  //   const agent = await this.prisma.user.findUnique({
+  //     where: { id: agentId },
+  //     select: { name: true, email: true }
+  //   });
+
+  //   const agentName = agent?.name || agent?.email;
+
+  //   // Get all customers created by this agent in the date range (new customers)
+  //   const newCustomersRaw = await this.prisma.$queryRawUnsafe<any[]>(`
+  //       SELECT * FROM "customer"
+  //       WHERE "deleted" IS FALSE
+  //       AND EXISTS (
+  //         SELECT FROM jsonb_array_elements("leadUser") AS elem
+  //         WHERE elem->>'lead1' = '${agentId}'
+  //       )
+  //     `);
+  //   const newCustomersDateFilterRaw = await this.prisma.$queryRawUnsafe<any[]>(`
+  //       SELECT * FROM "customer"
+  //       WHERE "deleted" IS FALSE
+  //       AND EXISTS (
+  //         SELECT FROM jsonb_array_elements("leadUser") AS elem
+  //         WHERE elem->>'lead1' = '${agentId}'
+  //       )
+  //       AND "created_at" >= '${startDate.toISOString()}'
+  //       AND "created_at" <= '${endDate.toISOString()}'
+  //     `);
+  //   const newCustomers = newCustomersDateFilterRaw || [];  
+
+  //   // Get all loans created by this agent in the date range
+  //   const allLoans = await this.prisma.loan.findMany({
+  //     where: {
+  //       created_by: agentId,
+  //       deleted: { not: true }
+  //     },
+  //     include: {
+  //       customer: {
+  //         select: {
+  //           id: true,
+  //           created_at: true,
+  //           created_by: true
+  //         }
+  //       },
+  //       payment: {
+  //         select: {
+  //           amount: true,
+  //           type: true
+  //         }
+  //       }
+  //     }
+  //   });
+  //   const allLoansPeriod = await this.prisma.loan.findMany({
+  //     where: {
+  //       created_by: agentId,
+  //       created_at: {
+  //         gte: startDate,
+  //         lte: endDate
+  //       },
+  //       deleted: { not: true }
+  //     },
+  //     include: {
+  //       customer: {
+  //         select: {
+  //           id: true,
+  //           created_at: true,
+  //           created_by: true
+  //         }
+  //       },
+  //       payment: {
+  //         select: {
+  //           amount: true,
+  //           type: true
+  //         }
+  //       }
+  //     }
+  //   });
+
+
+  //   return {
+  //     agentId: agentId,
+  //     agent: agentName,
+  //     newCustomerCount: newCustomersDateFilterRaw.length,
+  //     totalLoanCount: allLoans.length,
+  //     totalCustomerCount: newCustomersRaw.length,
+
+  //     // Total New Customer metrics
+  //     totalCustomerCountAnyLoan: new Set(allLoansPeriod.map(loan => loan.customer_id)).size,
+      
+  //   };
+  // }
+
   async getSalesReport(data: GetSalesReportDto) {
     const { agents, fromDate, toDate } = data;
-    
     const fromDateObj = new Date(fromDate);
     const toDateObj = new Date(toDate);
-    
+  
     const salesReport: SalesReportRow[] = [];
-
+  
     for (const agentId of agents) {
       const reportRow = await this.generateAgentReport(agentId, fromDateObj, toDateObj);
       salesReport.push(reportRow);
     }
-
+  
     return salesReport;
-
   }
+  
   private async generateAgentReport(
-    agentId: string, 
-    startDate: Date, 
+    agentId: string,
+    startDate: Date,
     endDate: Date
   ): Promise<SalesReportRow> {
-    
-    // Get agent details
+    // Agent details
     const agent = await this.prisma.user.findUnique({
       where: { id: agentId },
       select: { name: true, email: true }
     });
-
     const agentName = agent?.name || agent?.email;
-
-    // Get all customers created by this agent in the date range (new customers)
-    const newCustomersRaw = await this.prisma.$queryRawUnsafe<any[]>(`
-        SELECT * FROM "customer"
-        WHERE "deleted" IS FALSE
-        AND EXISTS (
-          SELECT FROM jsonb_array_elements("leadUser") AS elem
-          WHERE elem->>'lead1' = '${agentId}'
-        )
-      `);
-    const newCustomersDateFilterRaw = await this.prisma.$queryRawUnsafe<any[]>(`
-        SELECT * FROM "customer"
-        WHERE "deleted" IS FALSE
-        AND EXISTS (
-          SELECT FROM jsonb_array_elements("leadUser") AS elem
-          WHERE elem->>'lead1' = '${agentId}'
-        )
-        AND "created_at" >= '${startDate.toISOString()}'
-        AND "created_at" <= '${endDate.toISOString()}'
-      `);
-
-    // Get all loans created by this agent in the date range
-    const allLoans = await this.prisma.loan.findMany({
+  
+    // ---------------------------
+    // Customers
+    // ---------------------------
+    const allCustomers = await this.prisma.$queryRawUnsafe<any[]>(`
+      SELECT id, created_at
+      FROM "customer"
+      WHERE "deleted" IS FALSE
+      AND EXISTS (
+        SELECT FROM jsonb_array_elements("leadUser") AS elem
+        WHERE elem->>'lead1' = '${agentId}'
+      )
+    `);
+  
+    const newCustomers = await this.prisma.$queryRawUnsafe<any[]>(`
+      SELECT id, created_at
+      FROM "customer"
+      WHERE "deleted" IS FALSE
+      AND EXISTS (
+        SELECT FROM jsonb_array_elements("leadUser") AS elem
+        WHERE elem->>'lead1' = '${agentId}'
+      )
+      AND "created_at" >= '${startDate.toISOString()}'
+      AND "created_at" <= '${endDate.toISOString()}'
+    `);
+  
+    const newCustomerIds = newCustomers.map(c => c.id);
+    const oldCustomerIds = allCustomers
+      .filter(c => !newCustomerIds.includes(c.id))
+      .map(c => c.id);
+  
+    // ---------------------------
+    // Loans
+    // ---------------------------
+    const loans = await this.prisma.loan.findMany({
       where: {
-        created_by: agentId,
+        supervisor: agentId,
         deleted: { not: true }
       },
       include: {
-        customer: {
-          select: {
-            id: true,
-            created_at: true,
-            created_by: true
-          }
-        },
-        payment: {
-          select: {
-            amount: true,
-            type: true
-          }
-        }
+        payment: true
       }
     });
-    const allLoansPeriod = await this.prisma.loan.findMany({
-      where: {
-        created_by: agentId,
-        created_at: {
-          gte: startDate,
-          lte: endDate
-        },
-        deleted: { not: true }
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            created_at: true,
-            created_by: true
+  
+    const loansPeriod = loans.filter(
+      l => l.loan_date && l.loan_date >= startDate && l.loan_date <= endDate
+    );
+  
+    // ---------------------------
+    // Helper: Aggregate loans
+    // ---------------------------
+    const aggregateLoans = (customerIds: string[]) => {
+      const custLoans = loansPeriod.filter(l => l.customer_id && customerIds.includes(l.customer_id));
+  
+      let totalIn = 0;
+      let totalOut = 0;
+  
+      custLoans.forEach(loan => {
+        loan.payment.forEach(p => {
+          if (p.type?.toUpperCase() === 'IN') {
+            totalIn += Number(p.amount) || 0;
           }
-        },
-        payment: {
-          select: {
-            amount: true,
-            type: true
+          if (p.type?.toUpperCase() === 'OUT') {
+            totalOut += Number(p.amount) || 0;
           }
-        }
-      }
-    });
-    
-
-
+        });
+      });
+  
+      return {
+        totalCustomerCount: new Set(custLoans.map(l => l.customer_id)).size,
+        totalLoanCount: custLoans.length,
+        totalIn,
+        totalOut,
+        estimateProfit: custLoans.reduce((sum, l) => sum + (Number(l.estimated_profit) || 0), 0),
+        actualProfit: custLoans.reduce((sum, l) => sum + (Number(l.actual_profit) || 0), 0),
+      };
+    };
+  
+    const newCustomerStats = aggregateLoans(newCustomerIds);
+    const oldCustomerStats = aggregateLoans(oldCustomerIds);
+  
+    // ---------------------------
+    // Final Report Row
+    // ---------------------------
     return {
-      agentId: agentId,
+      agentId,
       agent: agentName,
-
-      newCustomerCount: newCustomersDateFilterRaw.length,
-      totalLoanCount: allLoans.length,
-      totalCustomerCount: newCustomersRaw.length,
-
-      // Total New Customer metrics
-      totalCustomerCountLoan: new Set(allLoansPeriod.map(loan => loan.customer_id)).size,
-      totalLoanCountLoan: allLoansPeriod.length
-      
+      newCustomerCount: newCustomerIds.length,
+      totalLoanCount: loansPeriod.length,
+      totalCustomerCount: allCustomers.length,
+  
+      totalNewCustomer: newCustomerStats,
+      totalOldCustomer: oldCustomerStats,
+  
+      totalCustomerCountAnyLoan: newCustomerStats.totalCustomerCount + oldCustomerStats.totalCustomerCount
     };
   }
+  
+  
 
   private calculateLoanMetrics(loans: any[]) {
     let totalIn = 0;
