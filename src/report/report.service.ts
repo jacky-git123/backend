@@ -830,7 +830,7 @@ export class ReportService {
       agentId,
       agent: agentName,
       newCustomerCount: newCustomerIds.length,
-      totalLoanCount: loansPeriod.length,
+      totalLoanCount: loans.length,
       totalCustomerCount: allCustomers.length,
   
       totalNewCustomer: newCustomerStats,
