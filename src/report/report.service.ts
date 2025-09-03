@@ -9,6 +9,190 @@ export class ReportService {
   // This service will handle the logic for generating reports
   // You can inject other services here to fetch data and format it as needed
 
+  // async generateReport(generateReportDto: GenerateReportDto) {
+  //   const {
+  //     loan_date_from,
+  //     loan_date_to,
+  //     report_type,
+  //     payment_date_from,
+  //     payment_date_to
+  //   } = generateReportDto;
+
+  //   if (report_type === 'loan') {
+  //     // For loan reports, we can filter by loan dates and optionally by payment dates
+  //     let whereClause: any = {
+  //       deleted: false,
+  //     };
+
+  //     // Always filter by loan dates if provided
+  //     if (loan_date_from && loan_date_to) {
+  //       whereClause.loan_date = {
+  //         gte: new Date(loan_date_from).toISOString(),
+  //         lte: new Date(loan_date_to).toISOString(),
+  //       };
+  //     }
+
+  //     // Build payment filter for include
+  //     let paymentFilter: any = {};
+  //     if (payment_date_from && payment_date_to) {
+  //       paymentFilter.payment_date = {
+  //         gte: new Date(payment_date_from).toISOString(),
+  //         lte: new Date(payment_date_to).toISOString(),
+  //       };
+  //     }
+
+  //     const loanData = await this.prisma.loan.findMany({
+  //       where: whereClause,
+  //       include: {
+  //         customer: true,
+  //         installment: true,
+  //         payment: Object.keys(paymentFilter).length > 0 ? {
+  //           where: paymentFilter
+  //         } : true,
+  //         user: {
+  //           select: {
+  //             name: true
+  //           }
+  //         },
+  //         user_2: {
+  //           select: {
+  //             name: true
+  //           }
+  //         }
+  //       },
+  //       orderBy: {
+  //         loan_date: 'asc'
+  //       }
+  //     });
+
+  //     const formattedData = loanData.map(loan => {
+  //       const totalAmountReceived = loan.payment.reduce((sum, payment) => {
+  //         if (payment.type === 'In') {
+  //           return sum + parseFloat(payment.amount || '0');
+  //         }
+  //         return sum;
+  //       }, 0);
+
+  //       const nextDueInstallment = loan.installment
+  //         .filter(inst => inst.installment_date)
+  //         .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
+  //         .find(inst => !inst.status || inst.status == null);
+
+  //       return {
+  //         loanData: loan,
+  //         loanCreatedDate: loan.loan_date,
+  //         loanId: loan.generate_id,
+  //         agent: loan.user?.name || '',
+  //         agent2: loan.user_2?.name || '',
+  //         agentName2: loan.user_2?.name || '',
+  //         customerName: loan.customer?.name || '',
+  //         customerIc: loan.customer?.ic || '',
+  //         loanAmount: parseFloat(loan.principal_amount || '0').toFixed(2),
+  //         payableAmount: parseFloat(loan.payment_per_term || '0').toFixed(2),
+  //         deposit: parseFloat(loan.deposit_amount || '0').toFixed(2),
+  //         out: (parseFloat(loan.principal_amount || '0') - parseFloat(loan.deposit_amount || '0')).toFixed(2),
+  //         dueDate: nextDueInstallment?.installment_date || '',
+  //         dueAmount: parseFloat(nextDueInstallment?.due_amount || '0').toFixed(2),
+  //         totalAmountReceived: totalAmountReceived.toFixed(2),
+  //         estimatedProfit: parseFloat(loan.estimated_profit || '0').toFixed(2),
+  //         actualProfit: parseFloat(loan.actual_profit || '0').toFixed(2)
+  //       };
+  //     });
+
+  //     return formattedData;
+  //   }
+
+  //   if (report_type === 'payment') {
+  //     // Determine which date range to use for payment filtering
+  //     let paymentDateFrom, paymentDateTo, loanDateFrom, loanDateTo;
+
+  //     // Use payment dates if provided, otherwise fall back to loan dates
+  //     if (payment_date_from && payment_date_to) {
+  //       paymentDateFrom = payment_date_from;
+  //       paymentDateTo = payment_date_to;
+  //     } else if (loan_date_from && loan_date_to) {
+  //       paymentDateFrom = loan_date_from;
+  //       paymentDateTo = loan_date_to;
+  //     }
+
+  //     // Set loan date filters if provided
+  //     if (loan_date_from && loan_date_to) {
+  //       loanDateFrom = loan_date_from;
+  //       loanDateTo = loan_date_to;
+  //     }
+
+  //     if (!paymentDateFrom || !paymentDateTo) {
+  //       throw new Error('Either payment dates or loan dates must be provided for payment reports');
+  //     }
+
+  //     const paymentData = await this.prisma.payment.findMany({
+  //       where: {
+  //         payment_date: {
+  //           gte: new Date(paymentDateFrom).toISOString(),
+  //           lte: new Date(paymentDateTo).toISOString(),
+  //         }
+  //       },
+  //       orderBy: {
+  //         payment_date: 'asc'
+  //       }
+  //     });
+
+  //     const formatPaymentData = await Promise.all(paymentData.map(async payment => {
+  //       // Build loan filter conditions
+  //       let loanWhereClause: any = {
+  //         id: payment.loan_id,
+  //         deleted: false
+  //       };
+
+  //       // Add loan date filter if provided
+  //       if (loanDateFrom && loanDateTo) {
+  //         loanWhereClause.loan_date = {
+  //           gte: new Date(loanDateFrom).toISOString(),
+  //           lte: new Date(loanDateTo).toISOString(),
+  //         };
+  //       }
+
+  //       const loan = await this.prisma.loan.findUnique({
+  //         where: loanWhereClause,
+  //         include: {
+  //           customer: true,
+  //           installment: true,
+  //           payment: true,
+  //           user: {
+  //             select: {
+  //               name: true
+  //             }
+  //           },
+  //           user_2: {
+  //             select: {
+  //               name: true
+  //             }
+  //           }
+  //         }
+  //       });
+
+  //       if (!loan) return null;
+
+  //       return {
+  //         paymentType: payment.type,
+  //         paymntin_out: payment.payment_date,
+  //         agentName: loan.user?.name || '',
+  //         agentName2: loan.user_2?.name || '',
+  //         loanId: loan.generate_id,
+  //         customerName: loan.customer?.name || '',
+  //         totalPaymentIn: payment.type === 'In' ? payment.amount : '',
+  //         totalPaymentOut: payment.type === 'Out' ? payment.amount : '',
+  //         bankAgentAccountNo: payment.account_details || '',
+  //         remarks: payment.remarks || '',
+  //       };
+  //     }));
+
+  //     const filteredPaymentData = formatPaymentData.filter(item => item !== null);
+  //     return filteredPaymentData;
+  //   }
+
+  //   return [];
+  // }
   async generateReport(generateReportDto: GenerateReportDto) {
     const {
       loan_date_from,
@@ -103,92 +287,81 @@ export class ReportService {
     }
 
     if (report_type === 'payment') {
-      // Determine which date range to use for payment filtering
-      let paymentDateFrom, paymentDateTo, loanDateFrom, loanDateTo;
+      // Build loan filter conditions
+      let loanWhereClause: any = {
+        deleted: false
+      };
 
-      // Use payment dates if provided, otherwise fall back to loan dates
-      if (payment_date_from && payment_date_to) {
-        paymentDateFrom = payment_date_from;
-        paymentDateTo = payment_date_to;
-      } else if (loan_date_from && loan_date_to) {
-        paymentDateFrom = loan_date_from;
-        paymentDateTo = loan_date_to;
-      }
-
-      // Set loan date filters if provided
+      // Add loan date filter if provided
       if (loan_date_from && loan_date_to) {
-        loanDateFrom = loan_date_from;
-        loanDateTo = loan_date_to;
+        loanWhereClause.loan_date = {
+          gte: new Date(loan_date_from).toISOString(),
+          lte: new Date(loan_date_to).toISOString(),
+        };
       }
 
-      if (!paymentDateFrom || !paymentDateTo) {
-        throw new Error('Either payment dates or loan dates must be provided for payment reports');
+      // Build payment filter for include
+      let paymentFilter: any = {};
+      if (payment_date_from && payment_date_to) {
+        paymentFilter.payment_date = {
+          gte: new Date(payment_date_from).toISOString(),
+          lte: new Date(payment_date_to).toISOString(),
+        };
       }
 
-      const paymentData = await this.prisma.payment.findMany({
-        where: {
-          payment_date: {
-            gte: new Date(paymentDateFrom).toISOString(),
-            lte: new Date(paymentDateTo).toISOString(),
+      // Fetch loans with their payments
+      const loanData = await this.prisma.loan.findMany({
+        where: loanWhereClause,
+        include: {
+          customer: true,
+          installment: true,
+          payment: Object.keys(paymentFilter).length > 0 ? {
+            where: paymentFilter,
+            orderBy: {
+              payment_date: 'asc'
+            }
+          } : {
+            orderBy: {
+              payment_date: 'asc'
+            }
+          },
+          user: {
+            select: {
+              name: true
+            }
+          },
+          user_2: {
+            select: {
+              name: true
+            }
           }
         },
         orderBy: {
-          payment_date: 'asc'
+          loan_date: 'asc'
         }
       });
 
-      const formatPaymentData = await Promise.all(paymentData.map(async payment => {
-        // Build loan filter conditions
-        let loanWhereClause: any = {
-          id: payment.loan_id,
-          deleted: false
-        };
-
-        // Add loan date filter if provided
-        if (loanDateFrom && loanDateTo) {
-          loanWhereClause.loan_date = {
-            gte: new Date(loanDateFrom).toISOString(),
-            lte: new Date(loanDateTo).toISOString(),
-          };
-        }
-
-        const loan = await this.prisma.loan.findUnique({
-          where: loanWhereClause,
-          include: {
-            customer: true,
-            installment: true,
-            payment: true,
-            user: {
-              select: {
-                name: true
-              }
-            },
-            user_2: {
-              select: {
-                name: true
-              }
-            }
-          }
+      // Flatten the data to return payment records
+      const formattedPaymentData = [];
+      
+      loanData.forEach(loan => {
+        loan.payment.forEach(payment => {
+          formattedPaymentData.push({
+            paymentType: payment.type,
+            paymntin_out: payment.payment_date,
+            agentName: loan.user?.name || '',
+            agentName2: loan.user_2?.name || '',
+            loanId: loan.generate_id,
+            customerName: loan.customer?.name || '',
+            totalPaymentIn: payment.type === 'In' ? payment.amount : '',
+            totalPaymentOut: payment.type === 'Out' ? payment.amount : '',
+            bankAgentAccountNo: payment.account_details || '',
+            remarks: payment.remarks || '',
+          });
         });
+      });
 
-        if (!loan) return null;
-
-        return {
-          paymentType: payment.type,
-          paymntin_out: payment.payment_date,
-          agentName: loan.user?.name || '',
-          agentName2: loan.user_2?.name || '',
-          loanId: loan.generate_id,
-          customerName: loan.customer?.name || '',
-          totalPaymentIn: payment.type === 'In' ? payment.amount : '',
-          totalPaymentOut: payment.type === 'Out' ? payment.amount : '',
-          bankAgentAccountNo: payment.account_details || '',
-          remarks: payment.remarks || '',
-        };
-      }));
-
-      const filteredPaymentData = formatPaymentData.filter(item => item !== null);
-      return filteredPaymentData;
+      return formattedPaymentData;
     }
 
     return [];
