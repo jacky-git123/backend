@@ -8,7 +8,7 @@ import { SessionUser } from 'src/session/session.dto';
 import { CurrentUser } from 'src/session/current-user.decorator';
 
 @Controller('user')
-// @UseGuards(SessionAuthGuard) 
+@UseGuards(SessionAuthGuard) 
 export class UserController {
   constructor(private readonly userService: UserService, private readonly userHierarchyService:UserHierarchyService) {}
 
