@@ -556,27 +556,44 @@ export class ReportService {
     // ---------------------------
     // Customers
     // ---------------------------
-    const allCustomers = await this.prisma.$queryRawUnsafe<any[]>(`
-      SELECT id, created_at
-      FROM "customer"
-      WHERE "deleted" IS FALSE
-      AND EXISTS (
-        SELECT FROM jsonb_array_elements("leadUser") AS elem
-        WHERE elem->>'lead1' = '${agentId}'
-      )
-    `);
+    // const allCustomers = await this.prisma.$queryRawUnsafe<any[]>(`
+    //   SELECT id, created_at
+    //   FROM "customer"
+    //   WHERE "deleted" IS FALSE
+    //   AND EXISTS (
+    //     SELECT FROM jsonb_array_elements("leadUser") AS elem
+    //     WHERE elem->>'lead1' = '${agentId}'
+    //   )
+    // `);
+    const allCustomers = await this.prisma.customer.findMany({
+      where: {
+        deleted: { not: true },
+        agent_id: agentId
+      }
+    });
   
-    const newCustomers = await this.prisma.$queryRawUnsafe<any[]>(`
-      SELECT id, created_at
-      FROM "customer"
-      WHERE "deleted" IS FALSE
-      AND EXISTS (
-        SELECT FROM jsonb_array_elements("leadUser") AS elem
-        WHERE elem->>'lead1' = '${agentId}'
-      )
-      AND "created_at" >= '${startDate.toISOString()}'
-      AND "created_at" <= '${endDate.toISOString()}'
-    `);
+    // const newCustomers = await this.prisma.$queryRawUnsafe<any[]>(`
+    //   SELECT id, created_at
+    //   FROM "customer"
+    //   WHERE "deleted" IS FALSE
+    //   AND EXISTS (
+    //     SELECT FROM jsonb_array_elements("leadUser") AS elem
+    //     WHERE elem->>'lead1' = '${agentId}'
+    //   )
+    //   AND "created_at" >= '${startDate.toISOString()}'
+    //   AND "created_at" <= '${endDate.toISOString()}'
+    // `);
+
+    const newCustomers = await this.prisma.customer.findMany({
+      where: {
+        deleted: { not: true },
+        agent_id: agentId,
+        created_at: {
+          gte: startDate,
+          lte: endDate
+        }
+      }
+    });
   
     const newCustomerIds = newCustomers.map(c => c.id);
     const oldCustomerIds = allCustomers

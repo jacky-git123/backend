@@ -43,7 +43,7 @@ model customer {
   customer_address Json?
   employment       Json?
   relations        Json?
-  supervisor       String?    @db.Uuid
+  agent_id            String?    @db.Uuid
   car_plate        String?    @db.VarChar(255)
   marital_status   String?    @db.VarChar(255)
   mobile_no        String?    @db.VarChar(255)

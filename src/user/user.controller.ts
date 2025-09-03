@@ -8,7 +8,7 @@ import { SessionUser } from 'src/session/session.dto';
 import { CurrentUser } from 'src/session/current-user.decorator';
 
 @Controller('user')
-@UseGuards(SessionAuthGuard) 
+// @UseGuards(SessionAuthGuard) 
 export class UserController {
   constructor(private readonly userService: UserService, private readonly userHierarchyService:UserHierarchyService) {}
 
@@ -82,5 +82,27 @@ export class UserController {
     @Param('userId') userId: string
   ): Promise<any & { hierarchyTree: any[] }> {
     return this.userHierarchyService.getUserHierarchyWithDetails(userId);
+  }
+
+  @Get('leads-and-agents/:id')
+  async getLeadsAndAgents(
+    @Param('id') id: string,
+  ) {
+    return this.userHierarchyService.getLeadsAndAgentsByHierarchy(id);
+    
+  }
+
+  // Optional: If you want a simpler endpoint without hierarchy filtering
+  @Get('all-leads-and-agents')
+  async getAllLeadsAndAgents() {
+    return this.userHierarchyService.getAllLeadsAndAgents();
+  }
+
+  @Post('agents-by-leads')
+  async getAgentsByLeads(
+    @Body() body: { leadIds: string[] },
+    @CurrentUser() user: SessionUser
+  ) {
+    return this.userHierarchyService.getAgentsByMultipleLeads(body.leadIds, user.id);
   }
 }

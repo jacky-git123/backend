@@ -57,6 +57,7 @@ export class CreateCustomerDto {
   updated_by: any;
 
   userid: string;
+  agent_id: string;
 }
 
 export class UpdateCustomerDto {
