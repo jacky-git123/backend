@@ -466,7 +466,7 @@ export class ReportService {
       agentReports.push({
         agentId: agent.id, 
         agentName: agent.name, 
-        customersInRange, 
+        totalNewCustomer: customersInRange.length, 
         totalLoans, 
         totalCustomers,
         customersInRangeStats,
