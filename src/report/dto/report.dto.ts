@@ -129,40 +129,40 @@ export interface UserExpensesResponse {
   monthlyBreakdown: MonthlyBreakdown[];
 }
 
-export interface SalesReportRow {
-  agentId: string;
-  agent: string;
-  newCustomerCount: number;
-  totalLoanCount: number;
-  totalCustomerCount: number;
+export interface SalesReportResponse {
+  // Within date range
+  customersInRange: {
+    count: number;
+    totalLoans: number;
+  };
   
-  // Total Customer metrics
-  totalCustomerCountAnyLoan: number;
-  totalNewCustomer:any
-  totalOldCustomer:any
-  // totalLoanCountAnyLoan: number;
-  // totalInSumAnyLoan: number;
-  // totalOutSumAnyLoan: number;
-  // estimateProfitSumAnyLoan: number;
-  // actualProfitSumAnyLoan: number;
+  // All customers by agents (no date filter)
+  allCustomersByAgents: {
+    count: number;
+    loansInRange: number;
+    payments: {
+      totalIn: number;
+      totalOut: number;
+    };
+    profits: {
+      estimatedProfit: number;
+      actualProfit: number;
+    };
+  };
   
-  // Total New Customer metrics
-  // totalNewCustomerCount: number;
-  // totalLoanCountNewCustomer: number;
-  // totalInSumNewCustomer: number;
-  // totalOutSumNewCustomer: number;
-  // estimateProfitSumNewCustomer: number;
-  // actualProfitSumNewCustomer: number;
-  
-  // Total Old Customer metrics
-  // totalOldCustomerCount: number;
-  // totalLoanCountOldCustomer: number;
-  // totalInSumOldCustomer: number;
-  // totalOutSumOldCustomer: number;
-  // estimateProfitSumOldCustomer: number;
-  // actualProfitSumOldCustomer: number;
-  
-  // Combined Estimate and Actual Profit
-  // combinedEstimateProfit: number;
-  // combinedActualProfit: number;
+  // Customers outside date range
+  customersOutsideRange: {
+    count: number;
+    loansOutsideRange: number;
+    payments: {
+      totalIn: number;
+      totalOut: number;
+    };
+    profits: {
+      estimatedProfit: number;
+      actualProfit: number;
+    };
+  };
+  estimatedProfit: number;
+  actualProfit: number;
 }
