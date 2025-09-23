@@ -333,8 +333,8 @@ export class CustomerService {
     });
   }
 
-  getCustomer(key: string) {
-    return this.prisma.customer.findMany({
+  async getCustomer(key: string) {
+    const customers = await this.prisma.customer.findMany({
       where: {
         deleted: false,
         OR: [
@@ -371,6 +371,43 @@ export class CustomerService {
         ]
       },
     });
+
+    // Enhance customer data with loan status counts
+    await Promise.all(customers.map(async (customer:any) => {
+      const onGoingStatusCounts = await this.prisma.loan.count({
+        where: {
+          status: 'Completed',
+          deleted: false,
+          customer_id: customer.id,
+        }
+      });
+      const normalStatusCounts = await this.prisma.loan.count({
+        where: {
+          deleted: false,
+          status: 'Normal',
+          customer_id: customer.id,
+        }
+      });
+      const badDebtStatusCounts = await this.prisma.loan.count({
+        where: {
+          deleted: false,
+          status: 'Bad Debt',
+          customer_id: customer.id,
+        }
+      });
+      const badDebtCompletedStatusCounts = await this.prisma.loan.count({
+        where: {
+          deleted: false,
+          status: 'Bad Debt Completed',
+          customer_id: customer.id,
+        }
+      });
+      customer.onGoingStatusCounts = onGoingStatusCounts;
+      customer.normalStatusCounts = normalStatusCounts;
+      customer.badDebtStatusCounts = badDebtStatusCounts;
+      customer.badDebtCompletedStatusCounts = badDebtCompletedStatusCounts;
+    }));
+    return customers;
   }
 
   getDocument(key: string) {
