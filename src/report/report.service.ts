@@ -427,10 +427,6 @@ export class ReportService {
     const startDate = new Date(fromDate);
     const endDate = new Date(toDate);
 
-    // // Set time to beginning and end of day for accurate comparison
-    // startDate.setHours(0, 0, 0, 0);
-    // endDate.setHours(23, 59, 59, 999);
-
     // Get agent details
     const agentDetails = await this.prisma.user.findMany({
       where: {
@@ -447,168 +443,173 @@ export class ReportService {
 
     // Process each agent individually
     for (const agent of agentDetails) {
-      // Customers in date range with status == 'Success'
-      const customersInRange = await this.getCustomersInDateRange(agent.id, startDate, endDate);
-      const totalLoans = await this.getTotalLoanByAgent(agent.id);
-      const totalCustomers = await this.getTotalCustomersByAgent(agent.id, startDate, endDate);
-
-      // Calculate stats for customers in range
-      const customersInRangeStats = await this.calculateCustomerStats(customersInRange);
-
-      // Customers outside date range with status == 'Success'
-      const customersOutsideRange = await this.getCustomersOutsideDateRange(agent.id, startDate, endDate);
-
-      // Calculate stats for customers in range
-      const customersOutsideRangeStats = await this.calculateCustomerStats(customersOutsideRange);
-
-
-
-      agentReports.push({
-        agentId: agent.id, 
-        agentName: agent.name, 
-        totalNewCustomer: customersInRange.length, 
-        totalLoans, 
-        totalCustomers,
-        customersInRangeStats,
-        customersOutsideRangeStats,
-        estimatedProfit: customersInRangeStats.estimatedProfit + customersOutsideRangeStats.estimatedProfit,
-        actualProfit: customersInRangeStats.actualProfit + customersOutsideRangeStats.actualProfit,
-      });
-    }
-
-    return agentReports;
-
-    
-  }
-
-  private async getCustomersInDateRange(agentId: string, startDate: Date, endDate: Date) {
-    return await this.prisma.customer.findMany({
-      where: {
-        agent_id: agentId,
-        status: 'Success',
-        created_at: {
-          gte: startDate,
-          lte: endDate
-        },
-        deleted: {
-          not: true
-        }
-      },
-      include: {
-        loan: {
-          where: {
-            deleted: {
-              not: true
-            }
-          },
-          include: {
-            payment: true,
-          }
-        }
-      }
-    });
-  }
-
-  private async getTotalLoanByAgent(agentId: string) {
-    return await this.prisma.loan.count({
+      // Step 1: Get all loans for this agent within the date range
+      const loansInRange = await this.prisma.loan.findMany({
         where: {
           OR: [
-            { supervisor: agentId },
-            { supervisor_2: agentId }
+            { supervisor: agent.id },
+            { supervisor_2: agent.id }
+          ],
+          loan_date: {
+            gte: startDate,
+            lte: endDate
+          },
+          deleted: { not: true }
+        },
+        include: {
+          customer: true,
+          payment: true,
+        }
+      });
+
+      // Step 2: For each customer in these loans, check if they have any loan before start date
+      const newCustomerLoans = [];
+      const oldCustomerLoans = [];
+      const processedCustomers = new Set();
+
+      for (const loan of loansInRange) {
+        if (!loan.customer || processedCustomers.has(loan.customer_id)) {
+          // If customer already processed, add loan to appropriate category
+          const existingNewCustomer = newCustomerLoans.find(l => l.customer_id === loan.customer_id);
+          const existingOldCustomer = oldCustomerLoans.find(l => l.customer_id === loan.customer_id);
+
+          if (existingNewCustomer) {
+            newCustomerLoans.push(loan);
+          } else if (existingOldCustomer) {
+            oldCustomerLoans.push(loan);
+          }
+          continue;
+        }
+
+        // Check if customer has any loan before start date
+        const previousLoan = await this.prisma.loan.findFirst({
+          where: {
+            customer_id: loan.customer_id,
+            loan_date: {
+              lt: startDate
+            },
+            deleted: { not: true }
+          }
+        });
+
+        processedCustomers.add(loan.customer_id);
+
+        if (previousLoan) {
+          // Customer has previous loan - Old Customer
+          oldCustomerLoans.push(loan);
+        } else {
+          // Customer has no previous loan - New Customer
+          newCustomerLoans.push(loan);
+        }
+      }
+
+      // Step 3: Get unique customers from new customer loans
+      // Check if customer's created_at falls within date range AND agent_id matches
+      const uniqueCustomers = [];
+      const newCustomerIds = [...new Set(newCustomerLoans.map(loan => loan.customer_id))];
+
+      for (const customerId of newCustomerIds) {
+        const customer = await this.prisma.customer.findUnique({
+          where: { id: customerId }
+        });
+
+        if (customer &&
+          customer.created_at >= startDate &&
+          customer.created_at <= endDate &&
+          customer.agent_id === agent.id) {
+          uniqueCustomers.push(customer);
+        }
+      }
+
+      // Step 4: Calculate stats for new customers
+      const newCustomerStats = this.calculateLoanStats(newCustomerLoans);
+
+      // Step 5: Calculate stats for old customers  
+      const oldCustomerStats = this.calculateLoanStats(oldCustomerLoans);
+
+      // Step 6: Get total counts for agent
+      const totalLoanCount = await this.prisma.loan.count({
+        where: {
+          OR: [
+            { supervisor: agent.id },
+            { supervisor_2: agent.id }
           ],
           deleted: { not: true },
         },
       });
+
+      const totalCustomerCount = await this.prisma.customer.count({
+        where: {
+          agent_id: agent.id,
+          status: 'Success',
+          deleted: { not: true }
+        },
+      });
+
+      // Step 7: Build response
+      agentReports.push({
+        agent: agent.name,
+        newUniqueCustomer: uniqueCustomers.length,
+        totalLoanCount: totalLoanCount,
+        totalCustomer: totalCustomerCount,
+
+        // Total New Customer Stats
+        totalNewCustomer: {
+          totalCustomer: [...new Set(newCustomerLoans.map(loan => loan.customer_id))].length,
+          totalLoan: newCustomerStats.totalLoans,
+          totalIN: newCustomerStats.paymentsIn,
+          totalOUT: newCustomerStats.paymentsOut,
+          estimateProfit: newCustomerStats.estimatedProfit,
+          actualProfit: newCustomerStats.actualProfit
+        },
+
+        // Total Old Customer Stats
+        totalOldCustomer: {
+          totalCustomer: [...new Set(oldCustomerLoans.map(loan => loan.customer_id))].length,
+          totalLoan: oldCustomerStats.totalLoans,
+          totalIN: oldCustomerStats.paymentsIn,
+          totalOUT: oldCustomerStats.paymentsOut,
+          estimateProfit: oldCustomerStats.estimatedProfit,
+          actualProfit: oldCustomerStats.actualProfit
+        },
+
+        // Combined totals
+        estimateProfit: newCustomerStats.estimatedProfit + oldCustomerStats.estimatedProfit,
+        actualProfit: newCustomerStats.actualProfit + oldCustomerStats.actualProfit
+      });
+    }
+
+    return agentReports;
   }
 
-  private async getTotalCustomersByAgent(agentId: string, startDate: Date, endDate: Date) {
-    return await this.prisma.customer.count({
-      where: {
-        agent_id: agentId,
-        status: 'Success',
-        deleted: {
-          not: true
-        }
-      },
-    });
-  }
-
-  private async getCustomersOutsideDateRange(agentId: string, startDate: Date, endDate: Date) {
-    return await this.prisma.customer.findMany({
-      where: {
-        agent_id: agentId,
-        status: 'Success',
-        OR: [
-          {
-            created_at: {
-              lt: startDate
-            }
-          },
-          {
-            created_at: {
-              gt: endDate
-            }
-          }
-        ],
-        deleted: {
-          not: true
-        }
-      },
-      include: {
-        loan: {
-          where: {
-            deleted: {
-              not: true
-            }
-          },
-          include: {
-            payment: true,
-            installment: {
-              where: {
-                deleted: {
-                  not: true
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-
-  private async calculateCustomerStats(customers: any[]) {
-    let totalLoans = 0;
+  private calculateLoanStats(loans: any[]) {
+    let totalLoans = loans.length;
     let paymentsIn = 0;
     let paymentsOut = 0;
     let estimatedProfit = 0;
     let actualProfit = 0;
 
-    for (const customer of customers) {
-      totalLoans += customer.loan.length;
+    for (const loan of loans) {
+      // Add estimated and actual profit from loans
+      if (loan.estimated_profit) {
+        estimatedProfit += parseFloat(loan.estimated_profit) || 0;
+      }
+      if (loan.actual_profit) {
+        actualProfit += parseFloat(loan.actual_profit) || 0;
+      }
 
-      for (const loan of customer.loan) {
-        // Add estimated and actual profit from loans
-        if (loan.estimated_profit) {
-          estimatedProfit += parseFloat(loan.estimated_profit) || 0;
-        }
-        if (loan.actual_profit) {
-          actualProfit += parseFloat(loan.actual_profit) || 0;
-        }
-
-        // Calculate payments by type
-        for (const payment of loan.payment) {
-          const amount = parseFloat(payment.amount) || 0;
-          if (payment.type === 'In') {
-            paymentsIn += amount;
-          } else if (payment.type === 'Out') {
-            paymentsOut += amount;
-          }
+      // Calculate payments by type
+      for (const payment of loan.payment) {
+        const amount = parseFloat(payment.amount) || 0;
+        if (payment.type === 'In') {
+          paymentsIn += amount;
+        } else if (payment.type === 'Out') {
+          paymentsOut += amount;
         }
       }
     }
 
     return {
-      totalCustomerCount: customers.length,
       totalLoans,
       paymentsIn,
       paymentsOut,
