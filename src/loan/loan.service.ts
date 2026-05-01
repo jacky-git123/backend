@@ -1065,143 +1065,106 @@ export class LoanService {
   }
 
   async getLoanChecksByAgent(agents: string[], fromDate: string, toDate: string, userid: string, page: number = 1, limit: number = 10, status?: string) {
-    type LoanWithFlag = Awaited<ReturnType<typeof this.prisma.loan.findMany>>[number] & {
-      hasOtherLoanPaymentInPeriod?: boolean;
-      installment: Array<{
-        id: string;
-        installment_date: any;
-        due_amount?: string;
-        status?: string | null;
-        [key: string]: any;
-      }>;
-      user?: {
-        name?: string | null;
-        [key: string]: any;
-      } | null;
-      customer?: {
-        ic?: string | null;
-        name?: string | null;
-        [key: string]: any;
-      } | null;
-      nextInstallmentDate?: string | null;
-      nextInstallmentAmount?: string | null;
+    const offset = (page - 1) * limit;
+
+    const installmentFilter: any = {
+      deleted: false,
+      installment_date: {
+        gte: new Date(fromDate),
+        lte: new Date(toDate),
+      },
+      OR: [
+        { status: null },
+        { status: { equals: 'unpaid', mode: 'insensitive' } }
+      ]
     };
 
     const whereClause: any = {
-      loan_date: {
-        gte: fromDate ? new Date(fromDate) : undefined,
-        lte: toDate ? new Date(toDate) : undefined,
-      },
+      deleted: false,
       OR: [
         { created_by: { in: agents } },
         { supervisor: { in: agents } },
         { supervisor_2: { in: agents } }
       ],
-      deleted: false,
+      installment: {
+        some: installmentFilter,
+      },
     };
 
     if (typeof status !== 'undefined' && status !== null && status !== '') {
       whereClause.status = status;
     }
 
+    const totalCount = await this.prisma.loan.count({
+      where: whereClause,
+    });
+
     const loans = await this.prisma.loan.findMany({
-      skip: (page - 1) * limit,
+      skip: offset,
       take: limit,
       where: whereClause,
       include: {
-      customer: true,
-      installment: true,
-      user: true,
+        customer: true,
+        user: true,
+        installment: {
+          where: installmentFilter,
+          orderBy: {
+            installment_date: 'asc',
+          },
+        },
       },
       orderBy: {
-      created_at: 'desc',
-      },
-    }) as LoanWithFlag[];
-
-    const totalCount = await this.prisma.loan.count({
-      where: {
-        loan_date: {
-          gte: fromDate ? new Date(fromDate) : undefined,
-          lte: toDate ? new Date(toDate) : undefined,
-        },
-        OR: [
-          { created_by: { in: agents } },
-          { supervisor: { in: agents } },
-          { supervisor_2: { in: agents } }
-        ],
-        deleted: false,
+        created_at: 'desc',
       },
     });
 
-    for (const loan of loans) {
-      if (!loan.customer_id) continue;
+    const rows = await Promise.all(loans.map(async (loan: any) => {
+      const nextInstallment = loan.installment?.[0] || null;
 
-      // Find all other loans for this customer (excluding the current loan)
-      const otherLoans = await this.prisma.loan.findMany({
+      const otherLoanIds = (await this.prisma.loan.findMany({
         where: {
           customer_id: loan.customer_id,
           id: { not: loan.id },
           deleted: false,
         },
-        select: { id: true }
-      });
+        select: { id: true },
+      })).map(l => l.id);
 
-      if (otherLoans.length === 0) {
-        loan.hasOtherLoanPaymentInPeriod = false;
-        // continue;
-      }
-
-      // Get all payments for these other loans within the date range
-      const otherLoanIds = otherLoans.map(l => l.id);
-      const payments = await this.prisma.payment.findMany({
+      const otherLoansPayments = otherLoanIds.length > 0 ? await this.prisma.payment.findFirst({
         where: {
           loan_id: { in: otherLoanIds },
           payment_date: {
-            gte: fromDate,
-            lte: toDate,
+            gte: new Date(fromDate),
+            lte: new Date(toDate),
           },
           type: 'In',
         },
-        select: { id: true }
-      });
+        select: { id: true },
+      }) : null;
 
-
-      const nextInstallment = loan.installment
-        .filter(inst => {
-          if (!inst.installment_date) return false;
-          const date = new Date(inst.installment_date);
-          const from = fromDate ? new Date(fromDate) : null;
-          const to = toDate ? new Date(toDate) : null;
-          // Only include installments within the date range (inclusive)
-          return (
-            (!from || date >= from) &&
-            (!to || date <= to)
-          );
-        })
-        .sort((a, b) => new Date(a.installment_date).getTime() - new Date(b.installment_date).getTime())
-        .find(inst => !inst.status || inst.status === null || inst.status.toLowerCase() === 'unpaid');
-
-      loan.hasOtherLoanPaymentInPeriod = payments.length > 0;
-      loan.nextInstallmentDate = nextInstallment ? nextInstallment.installment_date : null;
-      loan.nextInstallmentAmount = nextInstallment ?  "RM " + parseFloat(loan.payment_per_term).toFixed(2) : null;
-    }
-
-    // Only return the required fields for each loan
-    const rows = await loans.map(loan => ({
-      agent: loan.user?.name || null,
-      customerIC: loan.customer?.ic || null,
-      customerName: loan.customer?.name || null,
-      dueDate: loan.nextInstallmentDate || null,
-      dueAmount: loan.nextInstallmentAmount || null,
-      remark: loan.loan_remark || null,
-      hasOtherLoanPaymentInPeriod: loan.hasOtherLoanPaymentInPeriod || false,
+      return {
+        agent: loan.user?.name || null,
+        customerIC: loan.customer?.ic || null,
+        customerName: loan.customer?.name || null,
+        dueDate: nextInstallment?.installment_date || null,
+        dueAmount: nextInstallment ? `RM ${parseFloat(loan.payment_per_term).toFixed(2)}` : null,
+        remark: loan.loan_remark || null,
+        hasOtherLoanPaymentInPeriod: !!otherLoansPayments,
+        loanGenerateId: loan.generate_id || null,
+        nextInstallment: nextInstallment ? [{
+          installment_date: nextInstallment.installment_date,
+          due_amount: nextInstallment.due_amount,
+          status: nextInstallment.status,
+        }] : null,
+      };
     }));
+
     return {
       data: rows,
-      totalCount: totalCount,
-      page: page,
+      totalCount,
+      page,
       limit,
-    }
+    };
   }
 }
 
