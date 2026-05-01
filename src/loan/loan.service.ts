@@ -1159,8 +1159,14 @@ export class LoanService {
       };
     }));
 
+    const sortedRows = rows.sort((a, b) => {
+      const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
+      const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
+      return aDate - bDate;
+    });
+
     return {
-      data: rows,
+      data: sortedRows,
       totalCount,
       page,
       limit,
