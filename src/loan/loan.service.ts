@@ -1073,10 +1073,10 @@ export class LoanService {
         gte: new Date(fromDate),
         lte: new Date(toDate),
       },
-      OR: [
-        { status: null },
-        { status: { equals: 'unpaid', mode: 'insensitive' } }
-      ]
+      // OR: [
+      //   { status: null },
+      //   { status: { equals: 'unpaid', mode: 'insensitive' } }
+      // ]
     };
 
     const whereClause: any = {
