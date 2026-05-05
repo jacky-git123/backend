@@ -1106,6 +1106,7 @@ export class LoanService {
       include: {
         customer: true,
         user: true,
+        user_2: true,
         installment: {
           where: installmentFilter,
           orderBy: {
@@ -1144,6 +1145,7 @@ export class LoanService {
 
       return {
         agent: loan.user?.name || null,
+        agent2: loan.user_2?.name || null,
         customerIC: loan.customer?.ic || null,
         customerName: loan.customer?.name || null,
         dueDate: nextInstallment?.installment_date || null,
