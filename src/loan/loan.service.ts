@@ -67,7 +67,9 @@ export class LoanService {
         );
       }
 
-      whereClause.OR = permissionConditions;
+      if(authUser.role && authUser.role !== 'VIEWER'){
+        whereClause.OR = permissionConditions;
+      }
     }
 
     
