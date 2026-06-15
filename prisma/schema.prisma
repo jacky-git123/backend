@@ -215,6 +215,7 @@ enum Role {
   LEAD
   AGENT
   SUPER_ADMIN
+  VIEWER
 }
 
 
