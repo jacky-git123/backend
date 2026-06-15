@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Delete, Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { UpdateLoanDto } from './dto/update-loan.dto';
 import { addDays, addWeeks, addMonths, addYears, format, subDays } from 'date-fns';
@@ -138,7 +138,11 @@ export class LoanService {
         );
       }
 
-      whereClause.OR = permissionConditions;
+      
+      if(authUser.role && authUser.role !== 'VIEWER'){
+        whereClause.OR = permissionConditions;
+        
+      }
     }
 
     // If there's a search filter, we need to combine it with permission filtering
