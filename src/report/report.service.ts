@@ -257,6 +257,7 @@ export class ReportService {
           lte: toDateObj
         },
         loan: {
+          deleted: { not: true },
           OR: [
             {
               supervisor: {
@@ -287,7 +288,6 @@ export class ReportService {
         payment_date: 'asc'
       }
     });
-
     // Helper function to get expense value for a specific month
     const getExpenseForMonth = (userId: string, year: number, month: number): number => {
       const userExpenses = expenses.filter(exp => exp.user_id === userId && exp.year === year.toString());
