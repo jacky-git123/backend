@@ -1087,6 +1087,7 @@ export class LoanService {
 
     const whereClause: any = {
       deleted: false,
+      status: { not: 'Completed' },
       OR: [
         { created_by: { in: agents } },
         { supervisor: { in: agents } },
