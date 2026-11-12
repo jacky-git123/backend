@@ -99,7 +99,13 @@ export class LoanService {
     return { ...loadData, getLeadUser };
   }
 
-  async findAll(page: number, limit: number, filter?: string, authUserId?: string) {
+  async findAll(
+    page: number,
+    limit: number,
+    filter?: string,
+    authUserId?: string,
+    loanDateRange?: { fromDate?: Date; toDate?: Date },
+  ) {
     const authUser = await this.prisma.user.findFirst({
       where: { id: authUserId },
       select: {
@@ -199,6 +205,21 @@ export class LoanService {
           OR: searchConditions
         };
       }
+    }
+
+    // Optional loan created date range (from / to are inclusive)
+    if (loanDateRange?.fromDate || loanDateRange?.toDate) {
+      const loanDateCondition: any = {};
+      if (loanDateRange.fromDate) loanDateCondition.gte = loanDateRange.fromDate;
+      if (loanDateRange.toDate) {
+        // Less than the next day, so the whole "to" day is included
+        const dayAfterTo = new Date(loanDateRange.toDate);
+        dayAfterTo.setUTCDate(dayAfterTo.getUTCDate() + 1);
+        loanDateCondition.lt = dayAfterTo;
+      }
+      whereClause = {
+        AND: [whereClause, { loan_date: loanDateCondition }],
+      };
     }
 
     // Define the query parameters

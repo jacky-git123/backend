@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Put, UseGuards ,Get, Delete, Query} from '@nestjs/common';
+import { Body, Controller, Param, Post, Put, UseGuards ,Get, Delete, Query, BadRequestException} from '@nestjs/common';
 import { LoanService } from './loan.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
@@ -11,6 +11,61 @@ import { CurrentUser } from 'src/session/current-user.decorator';
 @UseGuards(SessionAuthGuard) 
 export class LoanController {
   constructor(private readonly loanService: LoanService) {}
+
+  // Loan listing filtered by loan created date. Must stay above @Get(':id').
+  // GET /loan/by-loan-date?fromDate=yyyy-MM-dd&toDate=yyyy-MM-dd&page=1&limit=10&filter=
+  @Get('by-loan-date')
+  async findAllByLoanDate(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('filter') filter: any,
+    @Query('fromDate') fromDate: string,
+    @Query('toDate') toDate: string,
+    @CurrentUser() user: SessionUser
+  ) {
+    // Accepts yyyy-MM-dd (what the frontend sends) or dd/MM/yyyy.
+    // Builds the date at UTC midnight so it matches the DATE column exactly,
+    // whatever the server's time zone is.
+    const parseDate = (value: string, name: string): Date | undefined => {
+      const text = (value ?? '').toString().trim();
+      if (!text) return undefined;
+
+      let year: number, month: number, day: number;
+      const isoMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      const dmyMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+
+      if (isoMatch) {
+        [year, month, day] = [Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3])];
+      } else if (dmyMatch) {
+        [day, month, year] = [Number(dmyMatch[1]), Number(dmyMatch[2]), Number(dmyMatch[3])];
+      } else {
+        throw new BadRequestException(`${name} must be in yyyy-MM-dd format`);
+      }
+
+      const date = new Date(Date.UTC(year, month - 1, day));
+      // Rejects dates like 2026-02-31 that JavaScript would roll over
+      if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+      ) {
+        throw new BadRequestException(`${name} is not a valid date`);
+      }
+      return date;
+    };
+
+    const from = parseDate(fromDate, 'fromDate');
+    const to = parseDate(toDate, 'toDate');
+
+    if (from && to && from > to) {
+      throw new BadRequestException('fromDate cannot be after toDate');
+    }
+
+    return this.loanService.findAll(Number(page), Number(limit), filter, user.id, {
+      fromDate: from,
+      toDate: to,
+    });
+  }
 
   @Get(':id')
   async findOne(
